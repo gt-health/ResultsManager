@@ -6,5 +6,5 @@ RUN mvn clean install -DskipTests -f /usr/src/resultsmanager_src/
 
 FROM tomcat:latest
 #move the WAR for contesa to the webapps directory
-COPY --from=builder /usr/src/resultsmanager_src/target/ResultsManager-0.0.1-SNAPSHOT.war /usr/local/tomcat/webapps/ResultsManager-0.0.1-SNAPSHOT.war
+COPY --from=builder /usr/src/resultsmanager_src/target/ResultsManager-0.0.1-SNAPSHOT.war /usr/local/tomcat/webapps/ResultsManager.war
 COPY --from=builder /usr/src/resultsmanager_src/src/main/resources/* /usr/local/tomcat/src/main/resources/

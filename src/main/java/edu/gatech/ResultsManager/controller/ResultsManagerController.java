@@ -22,16 +22,15 @@ public class ResultsManagerController {
 
 	CQLStorageService cqlStorageService;
 	CQLExecutionService cqlExecutionService;
-	ECRStorageService ecrStorageService;
+	//ECRStorageService ecrStorageService;
 	CQLFHIR2ECRService cqlFhir2EcrService;
 	
 	@Autowired
 	public ResultsManagerController(CQLStorageService cqlStorageService, CQLExecutionService cqlExecutionService,
-			ECRStorageService ecrStorageService,CQLFHIR2ECRService cqlFhir2EcrService) {
+			CQLFHIR2ECRService cqlFhir2EcrService) {
 		super();
 		this.cqlStorageService = cqlStorageService;
 		this.cqlExecutionService = cqlExecutionService;
-		this.ecrStorageService = ecrStorageService;
 		this.cqlFhir2EcrService = cqlFhir2EcrService;
 	}
 	
@@ -41,11 +40,12 @@ public class ResultsManagerController {
 			@RequestParam(value = "patientId", required = true) String id,
 			@RequestParam(value = "cqlType", required = true) String cqlName){
 		String cqlBody = cqlStorageService.requestCQL(cqlName);
-		ECR ecr = ecrStorageService.getECR(firstName, lastName);
+		//ECR ecr = ecrStorageService.getECR(firstName, lastName);
+		ECR ecr = new ECR();
 		JsonNode cqlResults = cqlExecutionService.evaluateCQL(cqlBody,id);
 		ECR ecrFromCQL = cqlFhir2EcrService.CQLFHIRResultsToECR((ArrayNode)cqlResults);
 		ecr.update(ecrFromCQL);
-		ecrStorageService.storeECR(ecr.toString());
+		//ecrStorageService.storeECR(ecr.toString());
 		return new ResponseEntity<ECR>(ecr,HttpStatus.OK);
 	}
 
@@ -63,14 +63,6 @@ public class ResultsManagerController {
 
 	public void setCqlExecutionService(CQLExecutionService cqlExecutionService) {
 		this.cqlExecutionService = cqlExecutionService;
-	}
-
-	public ECRStorageService getEcrStorageService() {
-		return ecrStorageService;
-	}
-
-	public void setEcrStorageService(ECRStorageService ecrStorageService) {
-		this.ecrStorageService = ecrStorageService;
 	}
 
 	public CQLFHIR2ECRService getCqlFhir2EcrService() {
