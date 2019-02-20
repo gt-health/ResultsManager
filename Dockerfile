@@ -1,23 +1,10 @@
-#Use the Postgres image as a base
-FROM tomcat:latest
-MAINTAINER Mike Riley "michael.riley@gtri.gatech.edu"
-
-RUN apt-get update -y && apt-get upgrade -y
-
-RUN apt-get install -y \
-      git \
-      postgresql \
-      openjdk-8-jdk \
-      maven
-	  
-# Define environment variable
-ENV POSTGRES_USER postgres
-ENV POSTGRES_PASSWORD postgres
-ENV POSTGRES_DB ecrdb
-
-#RUN mvn clean install -DskipTests -f ecrLib/ecr_javalib
-ADD . /usr/src/resultsmanager_src/
+FROM maven:3.6.0-jdk-8 AS builder
+WORKDIR /usr/src/resultsmanager_src
+ADD . .
 RUN mvn clean install -DskipTests -f /usr/src/resultsmanager_src/ecr_javalib
 RUN mvn clean install -DskipTests -f /usr/src/resultsmanager_src/
-RUN cp /usr/src/phcr_src/target/PHCR_Controller-0.0.1-SNAPSHOT.war $CATALINA_HOME/webapps/
-COPY wait-for-postgres.sh /usr/local/bin/wait-for-postgres.sh
+
+FROM tomcat:latest
+#move the WAR for contesa to the webapps directory
+COPY --from=builder /usr/src/resultsmanager_src/target/ResultsManager-0.0.1-SNAPSHOT.war /usr/local/tomcat/webapps/ResultsManager-0.0.1-SNAPSHOT.war
+COPY --from=builder /usr/src/resultsmanager_src/src/main/resources/* /usr/local/tomcat/src/main/resources/
