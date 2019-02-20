@@ -35,7 +35,7 @@ public class ResultsManagerController {
 		this.cqlFhir2EcrService = cqlFhir2EcrService;
 	}
 	
-	@RequestMapping(value = "/PACER", method = RequestMethod.POST)
+	@RequestMapping(value = "/case", method = RequestMethod.POST)
 	public ResponseEntity<ECR> pacerFlow(@RequestParam(value = "firstName", required = true) String firstName,
 			@RequestParam(value = "lastName", required = true) String lastName,
 			@RequestParam(value = "patientId", required = true) String id,
@@ -47,5 +47,37 @@ public class ResultsManagerController {
 		ecr.update(ecrFromCQL);
 		ecrStorageService.storeECR(ecr.toString());
 		return new ResponseEntity<ECR>(ecr,HttpStatus.OK);
+	}
+
+	public CQLStorageService getCqlStorageService() {
+		return cqlStorageService;
+	}
+
+	public void setCqlStorageService(CQLStorageService cqlStorageService) {
+		this.cqlStorageService = cqlStorageService;
+	}
+
+	public CQLExecutionService getCqlExecutionService() {
+		return cqlExecutionService;
+	}
+
+	public void setCqlExecutionService(CQLExecutionService cqlExecutionService) {
+		this.cqlExecutionService = cqlExecutionService;
+	}
+
+	public ECRStorageService getEcrStorageService() {
+		return ecrStorageService;
+	}
+
+	public void setEcrStorageService(ECRStorageService ecrStorageService) {
+		this.ecrStorageService = ecrStorageService;
+	}
+
+	public CQLFHIR2ECRService getCqlFhir2EcrService() {
+		return cqlFhir2EcrService;
+	}
+
+	public void setCqlFhir2EcrService(CQLFHIR2ECRService cqlFhir2EcrService) {
+		this.cqlFhir2EcrService = cqlFhir2EcrService;
 	}
 }

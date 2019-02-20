@@ -1,4 +1,4 @@
-package edu.gatech.ResultsManager.ecr.storage.service;
+package edu.gatech.ResultsManager.fhirfilter.service;
 
 import java.io.IOException;
 import java.util.List;
@@ -18,30 +18,28 @@ import gatech.edu.STIECR.JSON.ECR;
 
 @Service
 @Configuration
-@ConfigurationProperties(prefix="ecr.storage")
+@ConfigurationProperties(prefix="fhir.filter")
 @Primary
-public class ECRStorageService {
+public class FHIRFilterService {
 	private String endpoint;
 	private RestTemplate restTemplate;
 	private ObjectMapper objectMapper;
 	
-	public ECRStorageService() {
+	public FHIRFilterService() {
 		restTemplate = new RestTemplate();
 		objectMapper = new ObjectMapper();
 	}
 
-	public String storeECR(String ecrBody) {
+	/**
+	 * 
+	 * @param rawFhir A FHIR Bundle converted into string
+	 * @return A filtered version of the FHIR bundle. NOTE: must convert back to structured data if necessary
+	 */
+	public String applyFilter(String rawFhir) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
-				.scheme("http").host(endpoint).port("80").path("/ECR").build();
-		String cqlString = restTemplate.postForEntity(uriComponents.toUriString(), ecrBody, String.class).getBody();
-		return cqlString;
-	}
-	
-	public ECR getECR(String firstName,String lastName) {
-		UriComponents uriComponents = UriComponentsBuilder.newInstance()
-				.scheme("http").host(endpoint).port("80").path("/ECR").queryParam("firstName", firstName).queryParam("lastName", lastName).build();
-		List<ECR> ecrList = restTemplate.getForEntity(uriComponents.toUriString(), List.class).getBody();
-		return ecrList.get(0);
+				.scheme("http").host(endpoint).port("80").path("/apply").build();
+		String filteredResult = restTemplate.postForEntity(uriComponents.toUriString(), rawFhir, String.class).getBody();
+		return filteredResult;
 	}
 	
 	public String getEndpoint() {

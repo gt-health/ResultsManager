@@ -30,7 +30,7 @@ public class CQLStorageService {
 
 	public String requestCQL(String cqlName) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
-				.scheme("http").host(endpoint).port("8080").path("/CQL").queryParam("name", cqlName).build();
+				.scheme("http").host(endpoint).port("80").path("/CQL").queryParam("name", cqlName).build();
 		String responseString = restTemplate.getForEntity(uriComponents.toUriString(), String.class).getBody();
 		ObjectNode responseObject = null;
 		try {

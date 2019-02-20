@@ -9,6 +9,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -56,6 +57,7 @@ import ca.uhn.fhir.model.primitive.TimeDt;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import edu.gatech.ResultsManager.FHIR2ECR.util.HAPIFHIRUtil;
+import edu.gatech.ResultsManager.fhirfilter.service.FHIRFilterService;
 import gatech.edu.STIECR.JSON.CodeableConcept;
 import gatech.edu.STIECR.JSON.Diagnosis;
 import gatech.edu.STIECR.JSON.Dosage;
@@ -69,12 +71,15 @@ import gatech.edu.STIECR.JSON.Provider;
 import gatech.edu.STIECR.JSON.utils.DateUtil;
 import gatech.edu.STIECR.controller.ControllerUtils;
 
+@Service
 public class CQLFHIR2ECRService {
 
 	Logger log = LoggerFactory.getLogger(CQLFHIR2ECRService.class);
+	FHIRFilterService fhirFilterService;
 	IParser parser2;
 	
-	public CQLFHIR2ECRService() {
+	public CQLFHIR2ECRService(FHIRFilterService fhirFilterService) {
+		this.fhirFilterService = fhirFilterService;
 		parser2 = FhirContext.forDstu2().newJsonParser();
 	}
 	
@@ -82,17 +87,21 @@ public class CQLFHIR2ECRService {
 		ECR ecr = new ECR();
 		for(JsonNode result:cqlResults) {
 			String resultType = result.get("resultType").asText();
+			String filteredResults = "";
 			switch(resultType) {
 			case "Patient":
-				Patient patient = (Patient)parser2.parseResource(result.get("result").asText());
+				filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
+				Patient patient = (Patient)parser2.parseResource(filteredResults);
 				handlePatient(ecr,patient);
 				break;
 			case "FhirBundleCursorStu3":
-				Bundle bundle = (Bundle)parser2.parseResource(result.get("result").asText());
+				filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
+				Bundle bundle = (Bundle)parser2.parseResource(filteredResults);
 				handleBundle(ecr,bundle);
 				break;
 			case "Condition":
-				Condition condition = (Condition)parser2.parseResource(result.get("result").asText());
+				filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
+				Condition condition = (Condition)parser2.parseResource(filteredResults);
 				handleCondition(ecr,condition);
 				break;
 			}
@@ -695,5 +704,13 @@ public class CQLFHIR2ECRService {
 			}
 		}
 		return false;
+	}
+
+	public FHIRFilterService getFhirFilterService() {
+		return fhirFilterService;
+	}
+
+	public void setFhirFilterService(FHIRFilterService fhirFilterService) {
+		this.fhirFilterService = fhirFilterService;
 	}
 }
