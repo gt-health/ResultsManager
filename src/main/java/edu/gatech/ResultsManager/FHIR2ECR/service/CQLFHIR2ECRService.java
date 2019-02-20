@@ -91,19 +91,23 @@ public class CQLFHIR2ECRService {
 			switch(resultType) {
 			case "Patient":
 				filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
-				Patient patient = (Patient)parser2.parseResource(filteredResults);
-				handlePatient(ecr,patient);
-				break;
+				if(!filteredResults.equalsIgnoreCase("{}")) {
+					Patient patient = (Patient)parser2.parseResource(filteredResults);
+					handlePatient(ecr,patient);
+					break;
+				}
 			case "FhirBundleCursorStu3":
 				filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
 				Bundle bundle = (Bundle)parser2.parseResource(filteredResults);
 				handleBundle(ecr,bundle);
 				break;
 			case "Condition":
-				filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
-				Condition condition = (Condition)parser2.parseResource(filteredResults);
-				handleCondition(ecr,condition);
-				break;
+				if(!filteredResults.equalsIgnoreCase("{}")) {
+					filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
+					Condition condition = (Condition)parser2.parseResource(filteredResults);
+					handleCondition(ecr,condition);
+					break;
+				}
 			}
 		}
 		return ecr;
