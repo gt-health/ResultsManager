@@ -12,6 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Service
 @Configuration
@@ -30,7 +31,16 @@ public class CQLStorageService {
 	public String requestCQL(String cqlName) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
 				.scheme("http").host(endpoint).port("8080").path("/CQL").queryParam("name", cqlName).build();
-		String cqlString = restTemplate.getForEntity(uriComponents.toUriString(), String.class).getBody();
+		String responseString = restTemplate.getForEntity(uriComponents.toUriString(), String.class).getBody();
+		ObjectNode responseObject = null;
+		try {
+			responseObject = (ObjectNode) objectMapper.readTree(responseString);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+		String cqlString = responseObject.get("_embedded").get("CQLs").get(0).get("body").asText();
 		return cqlString;
 	}
 	
