@@ -1,6 +1,7 @@
 package edu.gatech.ResultsManager.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,7 +19,7 @@ import edu.gatech.ResultsManager.ecr.storage.service.ECRStorageService;
 import gatech.edu.STIECR.JSON.ECR;
 
 @RestController
-public class ResultsManagerController {
+public class ResultsManagerController extends SpringBootServletInitializer{
 
 	CQLStorageService cqlStorageService;
 	CQLExecutionService cqlExecutionService;
