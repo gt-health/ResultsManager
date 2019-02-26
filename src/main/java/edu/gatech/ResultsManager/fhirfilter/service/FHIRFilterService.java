@@ -37,7 +37,7 @@ public class FHIRFilterService {
 	 */
 	public String applyFilter(String rawFhir) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
-				.scheme("http").host(endpoint).port("80").path("/apply").build();
+				.scheme("https").host(endpoint).port("443").path("/apply").build();
 		String filteredResult = restTemplate.postForEntity(uriComponents.toUriString(), rawFhir, String.class).getBody();
 		return filteredResult;
 	}

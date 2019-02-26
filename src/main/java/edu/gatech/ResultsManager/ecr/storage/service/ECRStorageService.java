@@ -32,7 +32,7 @@ public class ECRStorageService {
 
 	public String storeECR(String ecrBody) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
-				.scheme("http").host(endpoint).port("80").path("/ECR").build();
+				.scheme("https").host(endpoint).port("443").path("/ECR").build();
 		String cqlString = restTemplate.postForEntity(uriComponents.toUriString(), ecrBody, String.class).getBody();
 		return cqlString;
 	}
