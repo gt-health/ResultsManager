@@ -41,7 +41,7 @@ public class CQLExecutionService {
 
 	public JsonNode evaluateCQL(String cqlBody, String patientId) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
-				.scheme("http").host(endpoint).port("80").path("/cql/evaluate").build();
+				.scheme("https").host(endpoint).port("443").path("/cql/evaluate").build();
 		ObjectNode requestJson = JsonNodeFactory.instance.objectNode();
 		requestJson.put("code", cqlBody);
 		requestJson.put("patientId", patientId);

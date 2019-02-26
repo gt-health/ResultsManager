@@ -19,7 +19,7 @@ import edu.gatech.ResultsManager.ecr.storage.service.ECRStorageService;
 import gatech.edu.STIECR.JSON.ECR;
 
 @RestController
-public class ResultsManagerController extends SpringBootServletInitializer{
+public class ResultsManagerController{
 
 	CQLStorageService cqlStorageService;
 	CQLExecutionService cqlExecutionService;
