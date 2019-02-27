@@ -5,6 +5,9 @@ import java.io.IOException;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
@@ -42,10 +45,13 @@ public class CQLExecutionService {
 	public JsonNode evaluateCQL(String cqlBody, String patientId) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
 				.scheme("https").host(endpoint).port("443").path("/cql/evaluate").build();
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
 		ObjectNode requestJson = JsonNodeFactory.instance.objectNode();
 		requestJson.put("code", cqlBody);
 		requestJson.put("patientId", patientId);
-		String cQLResultString = restTemplate.postForEntity(uriComponents.toUriString(), cqlBody, String.class).getBody();
+		HttpEntity<String> entity = new HttpEntity<String>(requestJson.toString(), headers);
+		String cQLResultString = restTemplate.postForEntity(uriComponents.toUriString(), entity, String.class).getBody();
 		JsonNode resultsJson = null;
 		try {
 			resultsJson = objectMapper.readTree(cQLResultString);

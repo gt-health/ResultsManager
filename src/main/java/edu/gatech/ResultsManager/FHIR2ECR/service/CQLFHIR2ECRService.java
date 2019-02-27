@@ -85,28 +85,32 @@ public class CQLFHIR2ECRService {
 	
 	public ECR CQLFHIRResultsToECR(ArrayNode cqlResults) {
 		ECR ecr = new ECR();
+		log.debug("Results:"+cqlResults.toString());
 		for(JsonNode result:cqlResults) {
-			String resultType = result.get("resultType").asText();
-			String filteredResults = "";
-			switch(resultType) {
-			case "Patient":
-				filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
-				if(!filteredResults.equalsIgnoreCase("{}")) {
-					Patient patient = (Patient)parser2.parseResource(filteredResults);
-					handlePatient(ecr,patient);
-					break;
-				}
-			case "FhirBundleCursorStu3":
-				filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
-				Bundle bundle = (Bundle)parser2.parseResource(filteredResults);
-				handleBundle(ecr,bundle);
-				break;
-			case "Condition":
-				if(!filteredResults.equalsIgnoreCase("{}")) {
+			log.debug("Result:"+result.toString());
+			if(result.get("resultType") != null) {
+				String resultType = result.get("resultType").asText();
+				String filteredResults = "";
+				switch(resultType) {
+				case "Patient":
 					filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
-					Condition condition = (Condition)parser2.parseResource(filteredResults);
-					handleCondition(ecr,condition);
+					if(!filteredResults.equalsIgnoreCase("{}")) {
+						Patient patient = (Patient)parser2.parseResource(filteredResults);
+						handlePatient(ecr,patient);
+						break;
+					}
+				case "FhirBundleCursorStu3":
+					filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
+					Bundle bundle = (Bundle)parser2.parseResource(filteredResults);
+					handleBundle(ecr,bundle);
 					break;
+				case "Condition":
+					if(!filteredResults.equalsIgnoreCase("{}")) {
+						filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
+						Condition condition = (Condition)parser2.parseResource(filteredResults);
+						handleCondition(ecr,condition);
+						break;
+					}
 				}
 			}
 		}
