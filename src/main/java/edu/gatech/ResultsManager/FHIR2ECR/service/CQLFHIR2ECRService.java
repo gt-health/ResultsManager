@@ -1,5 +1,6 @@
 package edu.gatech.ResultsManager.FHIR2ECR.service;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -7,12 +8,16 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.google.gson.JsonObject;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.model.api.IDatatype;
@@ -68,6 +73,7 @@ import gatech.edu.STIECR.JSON.LabResult;
 import gatech.edu.STIECR.JSON.Name;
 import gatech.edu.STIECR.JSON.ParentGuardian;
 import gatech.edu.STIECR.JSON.Provider;
+import gatech.edu.STIECR.JSON.TypeableID;
 import gatech.edu.STIECR.JSON.utils.DateUtil;
 import gatech.edu.STIECR.controller.ControllerUtils;
 
@@ -77,15 +83,16 @@ public class CQLFHIR2ECRService {
 	Logger log = LoggerFactory.getLogger(CQLFHIR2ECRService.class);
 	FHIRFilterService fhirFilterService;
 	IParser parser2;
+	ObjectMapper objectMapper;
 	
 	public CQLFHIR2ECRService(FHIRFilterService fhirFilterService) {
 		this.fhirFilterService = fhirFilterService;
 		parser2 = FhirContext.forDstu2().newJsonParser();
+		objectMapper = new ObjectMapper();
 	}
 	
 	public ECR CQLFHIRResultsToECR(ArrayNode cqlResults) {
 		ECR ecr = new ECR();
-		log.debug("Results:"+cqlResults.toString());
 		for(JsonNode result:cqlResults) {
 			log.debug("Result:"+result.toString());
 			if(result.get("resultType") != null) {
@@ -93,28 +100,94 @@ public class CQLFHIR2ECRService {
 				String filteredResults = "";
 				switch(resultType) {
 				case "Patient":
-					filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
+					filteredResults = fhirFilterService.applyFilter(result.get("result"));
 					if(!filteredResults.equalsIgnoreCase("{}")) {
 						Patient patient = (Patient)parser2.parseResource(filteredResults);
 						handlePatient(ecr,patient);
 						break;
 					}
 				case "FhirBundleCursorStu3":
-					filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
+					filteredResults = fhirFilterService.applyFilter(result.get("result"));
 					Bundle bundle = (Bundle)parser2.parseResource(filteredResults);
 					handleBundle(ecr,bundle);
 					break;
+				case "List":
+					handleList(ecr,result.get("result").asText());
+					break;
 				case "Condition":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
-						filteredResults = fhirFilterService.applyFilter(result.get("result").asText());
+						filteredResults = fhirFilterService.applyFilter(result.get("result"));
 						Condition condition = (Condition)parser2.parseResource(filteredResults);
 						handleCondition(ecr,condition);
 						break;
 					}
+				case "MedicationAdministration":
+					if(!filteredResults.equalsIgnoreCase("{}")) {
+						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						MedicationAdministration medicationAdministration = (MedicationAdministration)parser2.parseResource(filteredResults);
+						handleMedicationAdministration(ecr,medicationAdministration);
+						break;
+					}
+				case "MedicationDispense":
+					if(!filteredResults.equalsIgnoreCase("{}")) {
+						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						MedicationDispense medicationDispense = (MedicationDispense)parser2.parseResource(filteredResults);
+						handleMedicationDispense(ecr,medicationDispense);
+						break;
+					}
+				case "MedicationOrder":
+					if(!filteredResults.equalsIgnoreCase("{}")) {
+						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						MedicationOrder medicationOrder = (MedicationOrder)parser2.parseResource(filteredResults);
+						handleMedicationOrder(ecr,medicationOrder);
+						break;
+					}
+				case "MedicationStatement":
+					if(!filteredResults.equalsIgnoreCase("{}")) {
+						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						MedicationStatement medicationStatement = (MedicationStatement)parser2.parseResource(filteredResults);
+						handleMedicationStatement(ecr,medicationStatement);
+						break;
+					}
+				case "Observation":
+					if(!filteredResults.equalsIgnoreCase("{}")) {
+						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						Observation observation = (Observation)parser2.parseResource(filteredResults);
+						handleObservation(ecr,observation);
+						break;
+					}
+				case "Procedure":
+					if(!filteredResults.equalsIgnoreCase("{}")) {
+						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						Procedure procedure = (Procedure)parser2.parseResource(filteredResults);
+						handleProcedure(ecr,procedure);
+						break;
+					}
+				case "String":
+					addStringResultByResultKey(ecr,result);
+					break;
 				}
 			}
 		}
 		return ecr;
+	}
+	
+	void handleList(ECR ecr,String list) {
+		log.debug("HANDLE LIST --- inputString:"+list);
+		ArrayNode arrayNode = null;
+		try {
+			arrayNode = (ArrayNode)objectMapper.readTree(list);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Bundle inputBundle = new Bundle();
+		for(JsonNode node : arrayNode) {
+			log.debug("HANDLE LIST --- node:"+node.toString());
+			IResource resource = (IResource)parser2.parseResource(node.toString());
+			inputBundle.addEntry(new Entry().setResource(resource));
+		}
+		handleBundle(ecr,inputBundle);
 	}
 	
 	void handleBundle(ECR ecr, Bundle bundle) {
@@ -164,12 +237,10 @@ public class CQLFHIR2ECRService {
 			for (LabOrderCode labcode : ecr.getPatient().getlabOrderCode()) {
 				for (LabResult labresult : labcode.getLaboratory_Results()) {
 					if (labresult.getValue().toLowerCase().contains("positive")) {
-						if (ControllerUtils.isSTICode(labresult)) {
-							if (!StringUtils.isBlank(labresult.getDate())) {
-								log.info("LabResult --- Found onset date of: " + labresult.getDate());
-								ecr.getPatient().setdateOfOnset(labresult.getDate());
-								break;
-							}
+						if (!StringUtils.isBlank(labresult.getDate())) {
+							log.info("LabResult --- Found onset date of: " + labresult.getDate());
+							ecr.getPatient().setdateOfOnset(labresult.getDate());
+							break;
 						}
 					}
 				}
@@ -178,6 +249,7 @@ public class CQLFHIR2ECRService {
 	}
 
 	void handlePatient(ECR ecr, ca.uhn.fhir.model.dstu2.resource.Patient patient) {
+		log.info("PATIENT --- ");
 		ecr.getPatient().setbirthDate(patient.getBirthDate().toString());
 		IDatatype deceasedValue = patient.getDeceased();
 		if (deceasedValue != null && deceasedValue instanceof DateDt) {
@@ -187,6 +259,7 @@ public class CQLFHIR2ECRService {
 	}
 
 	void handleRelatedPerson(ECR ecr, RelatedPerson relatedPerson) {
+		log.info("RELATED PERSON --- ");
 		Name nameToSearch = new Name(relatedPerson.getName().getFamily().get(0).getValue(),
 				relatedPerson.getName().getGiven().get(0).getValue());
 		ParentGuardian ecrParentGuardian = ecr.findParentGuardianWithName(nameToSearch);
@@ -201,6 +274,7 @@ public class CQLFHIR2ECRService {
 	}
 
 	void handlePractitioner(ECR ecr, Practitioner provider) {
+		log.info("PRACTITIONER --- ");
 		Provider ecrProvider = new Provider();
 		ecrProvider.setaddress(provider.getAddress().get(0).getText());
 		ecrProvider.setcountry(provider.getAddress().get(0).getCountry());
@@ -522,6 +596,7 @@ public class CQLFHIR2ECRService {
 	}
 
 	void handleImmunization(ECR ecr, Immunization immunization) {
+		log.info("IMMUNIZATION --- ");
 		ImmunizationHistory ecrImmunization = new ImmunizationHistory();
 		if (immunization != null && immunization.getVaccineCode().getCoding().size() > 0) {
 			ecrImmunization.setCode(immunization.getVaccineCode().getCoding().get(0).getCode());
@@ -546,7 +621,7 @@ public class CQLFHIR2ECRService {
 			log.info("CONDITION --- Trying coding: " + coding.getDisplay());
 			CodeableConcept concept = FHIRCoding2ECRConcept(coding);
 			log.info("CONDITION --- Translated to ECRconcept:" + concept.toString());
-			if (ControllerUtils.isSTICode(concept) && !ecr.getPatient().getsymptoms().contains(concept)) {
+			if (!ecr.getPatient().getsymptoms().contains(concept)) {
 				log.info("CONDITION --- SYMPTOM MATCH!" + concept.toString());
 				ecr.getPatient().getsymptoms().add(concept);
 				break; // Stop once we get a codingDt that matches our list of codes.
@@ -609,11 +684,11 @@ public class CQLFHIR2ECRService {
 	}
 
 	void handleEncounter(ECR ecr, Encounter encounter) {
+		log.info("ENCOUNTER --- Trying encounter: " + encounter.getId());
 		for (CodeableConceptDt reason : encounter.getReason()) {
 			for (CodingDt coding : reason.getCoding()) {
 				CodeableConcept concept = FHIRCoding2ECRConcept(coding);
-				if (concept.getsystem().equals("SNOMED CT") && ControllerUtils.isSTICode(concept)
-						&& !ecr.getPatient().getsymptoms().contains(concept)) {
+				if (!ecr.getPatient().getsymptoms().contains(concept)) {
 					ecr.getPatient()
 							.setvisitDateTime(DateUtil.dateTimeToStdString(encounter.getPeriod().getStart()));
 				}
@@ -625,6 +700,7 @@ public class CQLFHIR2ECRService {
 	}
 
 	void handleObservation(ECR ecr, Observation observation) {
+		log.info("OBSERVATION --- Trying observation: " + observation.getId());
 		CodeableConceptDt code = observation.getCode();
 		for (CodingDt coding : code.getCoding()) {
 			if (coding.getCode().equalsIgnoreCase("laboratory")) { // HIT! Found a lab result
@@ -671,7 +747,8 @@ public class CQLFHIR2ECRService {
 		}
 	}
 
-	void handleProcedure(ECR ecr,Procedure procedure) {	
+	void handleProcedure(ECR ecr,Procedure procedure) {
+		log.info("PROCEDURE --- Trying procedure: " + procedure.getId());
 		if (procedure.getReason() != null && !procedure.getReason().isEmpty()) {
 			if (procedure.getReason() instanceof CodeableConceptDt) {
 				handleConditionConceptCode(ecr, (CodeableConceptDt) procedure.getReason());
@@ -702,6 +779,54 @@ public class CQLFHIR2ECRService {
 		}
 		ecrConcept.setdisplay(fhirCoding.getDisplay());
 		return ecrConcept;
+	}
+	
+	public void addStringResultByResultKey(ECR ecr,JsonNode result) {
+		if(result.get("resultType").toString().equalsIgnoreCase("Null"))
+			return;
+		String value = result.get("result").asText();
+		switch(result.get("name").asText()) {
+		case "19.Patient.ID":
+			TypeableID typeId = new TypeableID();
+			typeId.settype("fhir");
+			typeId.setvalue(value);
+			ecr.getPatient().getid().add(typeId);
+			break;
+		case "20A.Patient.Name.given":
+			ecr.getPatient().getname().setgiven(value);
+			break;
+		case "20A.Patient.Name.family":
+			ecr.getPatient().getname().setfamily(value);
+			break;
+		case "24.Patient.Street_Address":
+			ecr.getPatient().setstreetAddress(value);
+			break;
+		case "25.Patient.Birth_Date":
+			ecr.getPatient().setbirthDate(value);
+			break;
+		case "26.Patient.Sex":
+			ecr.getPatient().setsex(value);
+			break;
+		case "27.Patient.Class":
+			ecr.getPatient().setpatientClass(value);
+			break;
+		case "28.Patient.Race":
+			ecr.getPatient().setrace(new CodeableConcept("","",value));
+			break;
+		case "29.Patient.Ethnicity":
+			ecr.getPatient().setethnicity(new CodeableConcept("","",value));
+			break;
+		case "30.Patient.Preferred_Language":
+			ecr.getPatient().setpreferredLanguage(new CodeableConcept("","",value));
+			break;
+		case "31.Patient.Pregnancy":
+			ecr.getPatient().setpregnant(value.equalsIgnoreCase("false") ? false : true);
+			break;
+		case "32.Patient.Travel_History":
+			ecr.getPatient().gettravelHistory().add(value);
+			break;
+		}
+		
 	}
 	
 	public static boolean diagnosisContainsCodeableConcept(List<Diagnosis> listDiagnosis,CodeableConcept ecrConcept) {

@@ -2,6 +2,8 @@ package edu.gatech.ResultsManager.cql.execution.service;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -18,11 +20,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import edu.gatech.ResultsManager.FHIR2ECR.service.CQLFHIR2ECRService;
+
 @Service
 @Configuration
 @ConfigurationProperties(prefix="cql.execution")
 @Primary
 public class CQLExecutionService {
+	Logger log = LoggerFactory.getLogger(CQLExecutionService.class);
+	
 	private String endpoint;
 	private String fhirServiceUri;
 	private String dataServiceUri;
@@ -36,18 +42,18 @@ public class CQLExecutionService {
 		restTemplate = new RestTemplate();
 		objectMapper = new ObjectMapper();
 		requestJson = JsonNodeFactory.instance.objectNode();
-		requestJson.put("fhirServiceUri", fhirServiceUri);
-		requestJson.put("dataServiceUri", dataServiceUri);
-		requestJson.put("terminologyUser", terminologyUser);
-		requestJson.put("terminologyPass", terminologyPass);
 	}
 
 	public JsonNode evaluateCQL(String cqlBody, String patientId) {
+		log.debug("cql body:"+cqlBody);
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
 				.scheme("https").host(endpoint).port("443").path("/cql/evaluate").build();
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		ObjectNode requestJson = JsonNodeFactory.instance.objectNode();
+		requestJson.put("fhirServiceUri", fhirServiceUri);
+		requestJson.put("dataServiceUri", dataServiceUri);
+		requestJson.put("terminologyUser", terminologyUser);
+		requestJson.put("terminologyPass", terminologyPass);
 		requestJson.put("code", cqlBody);
 		requestJson.put("patientId", patientId);
 		HttpEntity<String> entity = new HttpEntity<String>(requestJson.toString(), headers);
