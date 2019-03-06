@@ -34,7 +34,7 @@ public class PatientIdentifierService {
 		if(!results.hasEntry())
 			throw new Exception("Patient identifier " + identifier + "not found.");
 		Patient patient = (Patient) results.getEntryFirstRep().getResource();
-		return patient.getId();
+		return patient.getIdElement().getIdPart();
 	}
 	
 	public String getDataServiceUri() {
