@@ -75,7 +75,7 @@ public class FHIRFilterService {
 		if(fhirJson.isArray()) {
 			output = JsonNodeFactory.instance.arrayNode();
 			for(JsonNode node:(ArrayNode)fhirJson) {
-				((ArrayNode)output).add(applyFilter(node.toString()));
+				((ArrayNode)output).add(applyFilter(node.toString(),escaped));
 				return output.toString();
 			}
 		}
