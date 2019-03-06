@@ -51,6 +51,10 @@ public class FHIRFilterService {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
 				.scheme("https").host(endpoint).port("443").path("/fhirfilter/apply").build();
 		rawFhir = StringEscapeUtils.unescapeJava(rawFhir);
+		if(rawFhir.charAt(0) == '"' && rawFhir.charAt(rawFhir.length()-1) == '"') {
+			//BAD HACK TO GET AROUND VALUE STRING WRAPPING
+			rawFhir = rawFhir.substring(1, rawFhir.length()-1);
+		}
 		log.debug("rawFhir after escaping characters:"+rawFhir);
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
