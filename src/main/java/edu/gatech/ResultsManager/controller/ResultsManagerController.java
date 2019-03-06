@@ -1,5 +1,7 @@
 package edu.gatech.ResultsManager.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ import gatech.edu.STIECR.JSON.ECR;
 
 @RestController
 public class ResultsManagerController{
+	Logger log = LoggerFactory.getLogger(ResultsManagerController.class);
 
 	CQLStorageService cqlStorageService;
 	PatientIdentifierService patientIdentifierService;
@@ -54,6 +57,7 @@ public class ResultsManagerController{
 		} catch (Exception e) {
 			return new ResponseEntity<ECR>(ecr,HttpStatus.UNPROCESSABLE_ENTITY);
 		}
+		log.debug("patientId:"+patientId);
 		JsonNode cqlResults = cqlExecutionService.evaluateCQL(cqlBody,patientId);
 		ECR ecrFromCQL = cqlFhir2EcrService.CQLFHIRResultsToECR((ArrayNode)cqlResults);
 		ecr.update(ecrFromCQL);
