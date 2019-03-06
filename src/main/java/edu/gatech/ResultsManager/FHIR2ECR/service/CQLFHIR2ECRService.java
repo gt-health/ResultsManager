@@ -107,10 +107,6 @@ public class CQLFHIR2ECRService {
 						break;
 					}
 				case "FhirBundleCursorStu3":
-					filteredResults = fhirFilterService.applyFilter(result.get("result"));
-					Bundle bundle = (Bundle)parser2.parseResource(filteredResults);
-					handleBundle(ecr,bundle);
-					break;
 				case "List":
 					handleList(ecr,result.get("result").asText());
 					break;
@@ -184,7 +180,8 @@ public class CQLFHIR2ECRService {
 		Bundle inputBundle = new Bundle();
 		for(JsonNode node : arrayNode) {
 			log.debug("HANDLE LIST --- node:"+node.toString());
-			IResource resource = (IResource)parser2.parseResource(node.toString());
+			String filteredResource = fhirFilterService.applyFilter(node);
+			IResource resource = (IResource)parser2.parseResource(filteredResource);
 			inputBundle.addEntry(new Entry().setResource(resource));
 		}
 		handleBundle(ecr,inputBundle);
@@ -828,7 +825,7 @@ public class CQLFHIR2ECRService {
 		case "32.Patient.Travel_History":
 			ecr.getPatient().gettravelHistory().add(value);
 			break;
-		case default:
+		default:
 			log.debug("STRING --- Didn't match to any key!");
 			break;
 		}
