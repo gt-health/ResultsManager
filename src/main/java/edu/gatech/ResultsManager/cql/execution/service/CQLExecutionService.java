@@ -30,7 +30,7 @@ public class CQLExecutionService {
 	Logger log = LoggerFactory.getLogger(CQLExecutionService.class);
 	
 	private String endpoint;
-	private String fhirServiceUri;
+	private String terminologyServiceUri;
 	private String dataServiceUri;
 	private String terminologyUser;
 	private String terminologyPass;
@@ -50,7 +50,7 @@ public class CQLExecutionService {
 				.scheme("https").host(endpoint).port("443").path("/cql/evaluate").build();
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		requestJson.put("fhirServiceUri", fhirServiceUri);
+		requestJson.put("terminologyServiceUri", terminologyServiceUri);
 		requestJson.put("dataServiceUri", dataServiceUri);
 		requestJson.put("terminologyUser", terminologyUser);
 		requestJson.put("terminologyPass", terminologyPass);
@@ -75,12 +75,12 @@ public class CQLExecutionService {
 		this.endpoint = endpoint;
 	}
 
-	public String getFhirServiceUri() {
-		return fhirServiceUri;
+	public String getTerminologyServiceUri() {
+		return terminologyServiceUri;
 	}
 
-	public void setFhirServiceUri(String fhirServiceUri) {
-		this.fhirServiceUri = fhirServiceUri;
+	public void setTerminologyServiceUri(String fhirServiceUri) {
+		this.terminologyServiceUri = fhirServiceUri;
 	}
 
 	public String getDataServiceUri() {

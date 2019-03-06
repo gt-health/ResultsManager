@@ -782,6 +782,7 @@ public class CQLFHIR2ECRService {
 	}
 	
 	public void addStringResultByResultKey(ECR ecr,JsonNode result) {
+		log.debug("STRING --- handling string:"+result);
 		if(result.get("resultType").toString().equalsIgnoreCase("Null"))
 			return;
 		String value = result.get("result").asText();
