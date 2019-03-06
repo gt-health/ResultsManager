@@ -73,7 +73,7 @@ public class FHIRFilterService {
 				return output.toString();
 			}
 		}
-		return applyFilter(fhirJson.asText());
+		return applyFilter(fhirJson.toString());
 	}
 	
 	public String getEndpoint() {
