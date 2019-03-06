@@ -154,7 +154,7 @@ public class CQLFHIR2ECRService {
 					}
 				case "Procedure":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
-						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
 						Procedure procedure = (Procedure)parser2.parseResource(filteredResults);
 						handleProcedure(ecr,procedure);
 						break;
