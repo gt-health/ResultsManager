@@ -73,7 +73,13 @@ public class FHIRFilterService {
 				return output.toString();
 			}
 		}
-		return applyFilter(fhirJson.toString());
+		try {
+			return applyFilter(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectMapper.readValue(fhirJson.toString(), Object.class)));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return "";
 	}
 	
 	public String getEndpoint() {
