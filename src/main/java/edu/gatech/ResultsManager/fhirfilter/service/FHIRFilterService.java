@@ -47,10 +47,12 @@ public class FHIRFilterService {
 	 * @param rawFhir A FHIR Resource converted into string
 	 * @return A filtered version of the FHIR bundle. NOTE: must convert back to structured data if necessary
 	 */
-	public String applyFilter(String rawFhir) {
+	public String applyFilter(String rawFhir,boolean escaped) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
 				.scheme("https").host(endpoint).port("443").path("/fhirfilter/apply").build();
-		rawFhir = StringEscapeUtils.unescapeJava(rawFhir);
+		if(!escaped) { //Trying to prevent double un-escaping here
+			rawFhir = StringEscapeUtils.unescapeJava(rawFhir);
+		}
 		if(rawFhir.charAt(0) == '"' && rawFhir.charAt(rawFhir.length()-1) == '"') {
 			//BAD HACK TO GET AROUND VALUE STRING WRAPPING
 			rawFhir = rawFhir.substring(1, rawFhir.length()-1);
@@ -68,7 +70,7 @@ public class FHIRFilterService {
 	 * @param fhirJson works with jackson json nodes. If an array node is passed, we break it out into it's children.
 	 * @return the same as applyFilter(string)
 	 */
-	public String applyFilter(JsonNode fhirJson) {
+	public String applyFilter(JsonNode fhirJson,boolean escaped) {
 		JsonNode output;
 		if(fhirJson.isArray()) {
 			output = JsonNodeFactory.instance.arrayNode();
@@ -78,7 +80,7 @@ public class FHIRFilterService {
 			}
 		}
 		try {
-			return applyFilter(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectMapper.readValue(fhirJson.toString(), Object.class)));
+			return applyFilter(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectMapper.readValue(fhirJson.toString(), Object.class)),escaped);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

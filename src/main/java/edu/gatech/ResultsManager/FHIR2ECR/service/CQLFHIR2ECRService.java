@@ -100,7 +100,7 @@ public class CQLFHIR2ECRService {
 				String filteredResults = "";
 				switch(resultType) {
 				case "Patient":
-					filteredResults = fhirFilterService.applyFilter(result.get("result"));
+					filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
 					if(!filteredResults.equalsIgnoreCase("{}")) {
 						Patient patient = (Patient)parser2.parseResource(filteredResults);
 						handlePatient(ecr,patient);
@@ -112,42 +112,42 @@ public class CQLFHIR2ECRService {
 					break;
 				case "Condition":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
-						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
 						Condition condition = (Condition)parser2.parseResource(filteredResults);
 						handleCondition(ecr,condition);
 						break;
 					}
 				case "MedicationAdministration":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
-						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
 						MedicationAdministration medicationAdministration = (MedicationAdministration)parser2.parseResource(filteredResults);
 						handleMedicationAdministration(ecr,medicationAdministration);
 						break;
 					}
 				case "MedicationDispense":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
-						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
 						MedicationDispense medicationDispense = (MedicationDispense)parser2.parseResource(filteredResults);
 						handleMedicationDispense(ecr,medicationDispense);
 						break;
 					}
 				case "MedicationOrder":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
-						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
 						MedicationOrder medicationOrder = (MedicationOrder)parser2.parseResource(filteredResults);
 						handleMedicationOrder(ecr,medicationOrder);
 						break;
 					}
 				case "MedicationStatement":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
-						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
 						MedicationStatement medicationStatement = (MedicationStatement)parser2.parseResource(filteredResults);
 						handleMedicationStatement(ecr,medicationStatement);
 						break;
 					}
 				case "Observation":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
-						filteredResults = fhirFilterService.applyFilter(result.get("result"));
+						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
 						Observation observation = (Observation)parser2.parseResource(filteredResults);
 						handleObservation(ecr,observation);
 						break;
@@ -180,7 +180,7 @@ public class CQLFHIR2ECRService {
 		Bundle inputBundle = new Bundle();
 		for(JsonNode node : arrayNode) {
 			log.debug("HANDLE LIST --- node:"+node.toString());
-			String filteredResource = fhirFilterService.applyFilter(node);
+			String filteredResource = fhirFilterService.applyFilter(node,true);
 			IResource resource = (IResource)parser2.parseResource(filteredResource);
 			inputBundle.addEntry(new Entry().setResource(resource));
 		}
