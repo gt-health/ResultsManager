@@ -786,7 +786,9 @@ public class CQLFHIR2ECRService {
 		if(result.get("resultType").toString().equalsIgnoreCase("Null"))
 			return;
 		String value = result.get("result").asText();
-		switch(result.get("name").asText()) {
+		String key = result.get("name").asText();
+		log.debug("STRING --- trying key:"+key);
+		switch(key) {
 		case "19.Patient.ID":
 			TypeableID typeId = new TypeableID();
 			typeId.settype("fhir");
@@ -825,6 +827,9 @@ public class CQLFHIR2ECRService {
 			break;
 		case "32.Patient.Travel_History":
 			ecr.getPatient().gettravelHistory().add(value);
+			break;
+		case default:
+			log.debug("STRING --- Didn't match to any key!");
 			break;
 		}
 		
