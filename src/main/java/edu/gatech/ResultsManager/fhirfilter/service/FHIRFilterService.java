@@ -50,7 +50,7 @@ public class FHIRFilterService {
 	public String applyFilter(String rawFhir) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
 				.scheme("https").host(endpoint).port("443").path("/fhirfilter/apply").build();
-		//rawFhir = StringEscapeUtils.unescapeJava(rawFhir);
+		rawFhir = StringEscapeUtils.unescapeJava(rawFhir);
 		log.debug("rawFhir after escaping characters:"+rawFhir);
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
