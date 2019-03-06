@@ -170,21 +170,24 @@ public class CQLFHIR2ECRService {
 	
 	void handleList(ECR ecr,String list) {
 		log.debug("HANDLE LIST --- inputString:"+list);
-		ArrayNode arrayNode = null;
-		try {
-			arrayNode = (ArrayNode)objectMapper.readTree(list);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		//Check for json list. Handling only json resources.
+		if(list.substring(0, 1).equalsIgnoreCase("[{")) {
+			ArrayNode arrayNode = null;
+			try {
+				arrayNode = (ArrayNode)objectMapper.readTree(list);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Bundle inputBundle = new Bundle();
+			for(JsonNode node : arrayNode) {
+				log.debug("HANDLE LIST --- node:"+node.toString());
+				String filteredResource = fhirFilterService.applyFilter(node,true);
+				IResource resource = (IResource)parser2.parseResource(filteredResource);
+				inputBundle.addEntry(new Entry().setResource(resource));
+			}
+			handleBundle(ecr,inputBundle);
 		}
-		Bundle inputBundle = new Bundle();
-		for(JsonNode node : arrayNode) {
-			log.debug("HANDLE LIST --- node:"+node.toString());
-			String filteredResource = fhirFilterService.applyFilter(node,true);
-			IResource resource = (IResource)parser2.parseResource(filteredResource);
-			inputBundle.addEntry(new Entry().setResource(resource));
-		}
-		handleBundle(ecr,inputBundle);
 	}
 	
 	void handleBundle(ECR ecr, Bundle bundle) {
@@ -819,10 +822,12 @@ public class CQLFHIR2ECRService {
 		case "30.Patient.Preferred_Language":
 			ecr.getPatient().setpreferredLanguage(new CodeableConcept("","",value));
 			break;
-		case "31.Patient.Pregnancy":
+		case "31.Patient.Occupation":
+			ecr.getPatient().setoccupation(value);
+		case "32.Patient.Pregnancy":
 			ecr.getPatient().setpregnant(value.equalsIgnoreCase("false") ? false : true);
 			break;
-		case "32.Patient.Travel_History":
+		case "33.Patient.Travel_History":
 			ecr.getPatient().gettravelHistory().add(value);
 			break;
 		default:
