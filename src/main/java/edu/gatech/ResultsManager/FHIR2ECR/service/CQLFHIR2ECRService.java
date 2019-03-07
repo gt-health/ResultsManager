@@ -160,6 +160,7 @@ public class CQLFHIR2ECRService {
 						break;
 					}
 				case "String":
+				case "StringType":
 					addStringResultByResultKey(ecr,result);
 					break;
 				}
