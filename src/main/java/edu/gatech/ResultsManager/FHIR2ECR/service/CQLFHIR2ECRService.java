@@ -172,7 +172,7 @@ public class CQLFHIR2ECRService {
 	void handleList(ECR ecr,String list) {
 		log.debug("HANDLE LIST --- inputString:"+list);
 		//Check for json list. Handling only json resources.
-		if(list.substring(0, 1).equalsIgnoreCase("[{")) {
+		if(list.substring(0, 2).equalsIgnoreCase("[{")) {
 			ArrayNode arrayNode = null;
 			try {
 				arrayNode = (ArrayNode)objectMapper.readTree(list);
