@@ -3,12 +3,53 @@ package edu.gatech.ResultsManager.FHIR2ECR.service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.hl7.fhir.dstu3.model.Address;
+import org.hl7.fhir.dstu3.model.Age;
+import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Condition;
+import org.hl7.fhir.dstu3.model.ContactPoint;
+import org.hl7.fhir.dstu3.model.DateTimeType;
+import org.hl7.fhir.dstu3.model.DomainResource;
+import org.hl7.fhir.dstu3.model.Dosage;
+import org.hl7.fhir.dstu3.model.Encounter;
+import org.hl7.fhir.dstu3.model.Encounter.DiagnosisComponent;
+import org.hl7.fhir.dstu3.model.Extension;
+import org.hl7.fhir.dstu3.model.Identifier;
+import org.hl7.fhir.dstu3.model.Immunization;
+import org.hl7.fhir.dstu3.model.Medication;
+import org.hl7.fhir.dstu3.model.MedicationAdministration;
+import org.hl7.fhir.dstu3.model.MedicationAdministration.MedicationAdministrationDosageComponent;
+import org.hl7.fhir.dstu3.model.MedicationRequest;
+import org.hl7.fhir.dstu3.model.MedicationStatement;
+import org.hl7.fhir.dstu3.model.Observation;
+import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Patient.PatientCommunicationComponent;
+import org.hl7.fhir.dstu3.model.Period;
+import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.Procedure;
+import org.hl7.fhir.dstu3.model.Quantity;
+import org.hl7.fhir.dstu3.model.Range;
+import org.hl7.fhir.dstu3.model.Ratio;
+import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.RelatedPerson;
+import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.SampledData;
+import org.hl7.fhir.dstu3.model.SimpleQuantity;
+import org.hl7.fhir.dstu3.model.StringType;
+import org.hl7.fhir.dstu3.model.TimeType;
+import org.hl7.fhir.dstu3.model.Timing.TimingRepeatComponent;
+import org.hl7.fhir.dstu3.model.Type;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.instance.model.api.IIdType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,56 +57,12 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.google.gson.JsonObject;
 
 import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.model.api.IDatatype;
-import ca.uhn.fhir.model.api.IResource;
-import ca.uhn.fhir.model.dstu2.composite.CodeableConceptDt;
-import ca.uhn.fhir.model.dstu2.composite.CodingDt;
-import ca.uhn.fhir.model.dstu2.composite.ContactPointDt;
-import ca.uhn.fhir.model.dstu2.composite.PeriodDt;
-import ca.uhn.fhir.model.dstu2.composite.QuantityDt;
-import ca.uhn.fhir.model.dstu2.composite.RangeDt;
-import ca.uhn.fhir.model.dstu2.composite.RatioDt;
-import ca.uhn.fhir.model.dstu2.composite.ResourceReferenceDt;
-import ca.uhn.fhir.model.dstu2.composite.SampledDataDt;
-import ca.uhn.fhir.model.dstu2.composite.SimpleQuantityDt;
-import ca.uhn.fhir.model.dstu2.resource.Bundle;
-import ca.uhn.fhir.model.dstu2.resource.Bundle.Entry;
-import ca.uhn.fhir.model.dstu2.resource.Claim;
-import ca.uhn.fhir.model.dstu2.resource.Condition;
-import ca.uhn.fhir.model.dstu2.resource.Conformance.RestResource;
-import ca.uhn.fhir.model.dstu2.resource.Conformance.RestResourceInteraction;
-import ca.uhn.fhir.model.dstu2.resource.Coverage;
-import ca.uhn.fhir.model.dstu2.resource.Encounter;
-import ca.uhn.fhir.model.dstu2.resource.Immunization;
-import ca.uhn.fhir.model.dstu2.resource.Medication;
-import ca.uhn.fhir.model.dstu2.resource.MedicationAdministration;
-import ca.uhn.fhir.model.dstu2.resource.MedicationDispense;
-import ca.uhn.fhir.model.dstu2.resource.MedicationOrder;
-import ca.uhn.fhir.model.dstu2.resource.MedicationOrder.DosageInstruction;
-import ca.uhn.fhir.model.dstu2.resource.MedicationStatement;
-import ca.uhn.fhir.model.dstu2.resource.Observation;
-import ca.uhn.fhir.model.dstu2.resource.Patient;
-import ca.uhn.fhir.model.dstu2.resource.Patient.Link;
-import ca.uhn.fhir.model.dstu2.resource.Practitioner;
-import ca.uhn.fhir.model.dstu2.resource.Procedure;
-import ca.uhn.fhir.model.dstu2.resource.RelatedPerson;
-import ca.uhn.fhir.model.dstu2.valueset.TypeRestfulInteractionEnum;
-import ca.uhn.fhir.model.primitive.DateDt;
-import ca.uhn.fhir.model.primitive.DateTimeDt;
-import ca.uhn.fhir.model.primitive.IdDt;
-import ca.uhn.fhir.model.primitive.StringDt;
-import ca.uhn.fhir.model.primitive.TimeDt;
 import ca.uhn.fhir.parser.IParser;
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import edu.gatech.ResultsManager.FHIR2ECR.util.HAPIFHIRUtil;
 import edu.gatech.ResultsManager.fhirfilter.service.FHIRFilterService;
-import gatech.edu.STIECR.JSON.CodeableConcept;
 import gatech.edu.STIECR.JSON.Diagnosis;
-import gatech.edu.STIECR.JSON.Dosage;
 import gatech.edu.STIECR.JSON.ECR;
 import gatech.edu.STIECR.JSON.ImmunizationHistory;
 import gatech.edu.STIECR.JSON.LabOrderCode;
@@ -82,17 +79,20 @@ public class CQLFHIR2ECRService {
 
 	Logger log = LoggerFactory.getLogger(CQLFHIR2ECRService.class);
 	FHIRFilterService fhirFilterService;
-	IParser parser2;
+	Bundle globalBundle;
+	IParser parser3;
 	ObjectMapper objectMapper;
 	
 	public CQLFHIR2ECRService(FHIRFilterService fhirFilterService) {
 		this.fhirFilterService = fhirFilterService;
-		parser2 = FhirContext.forDstu2().newJsonParser();
+		parser3 = FhirContext.forDstu3().newJsonParser();
 		objectMapper = new ObjectMapper();
+		globalBundle = new Bundle();
 	}
 	
 	public ECR CQLFHIRResultsToECR(ArrayNode cqlResults) {
 		ECR ecr = new ECR();
+		initGlobalBundleFromResults(ecr,cqlResults);
 		for(JsonNode result:cqlResults) {
 			log.debug("Result:"+result.toString());
 			if(result.get("resultType") != null) {
@@ -102,60 +102,57 @@ public class CQLFHIR2ECRService {
 				case "Patient":
 					filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
 					if(!filteredResults.equalsIgnoreCase("{}")) {
-						Patient patient = (Patient)parser2.parseResource(filteredResults);
+						Patient patient = (Patient)parser3.parseResource(filteredResults);
 						handlePatient(ecr,patient);
 						break;
 					}
 				case "FhirBundleCursorStu3":
 				case "List":
-					handleList(ecr,result.get("result").asText());
+					handleList(ecr,result.get("result").asText(),result.get("name").asText());
 					break;
 				case "Condition":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
 						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
-						Condition condition = (Condition)parser2.parseResource(filteredResults);
+						Condition condition = (Condition)parser3.parseResource(filteredResults);
+						if(result.get("name").asText().equalsIgnoreCase("42.Condition.Diagnosis")) {
+							log.debug("CONDITION --- Found diagnosis key!");
+							addDiagnosis(ecr,condition);
+						}
 						handleCondition(ecr,condition);
 						break;
 					}
 				case "MedicationAdministration":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
 						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
-						MedicationAdministration medicationAdministration = (MedicationAdministration)parser2.parseResource(filteredResults);
+						MedicationAdministration medicationAdministration = (MedicationAdministration)parser3.parseResource(filteredResults);
 						handleMedicationAdministration(ecr,medicationAdministration);
 						break;
 					}
-				case "MedicationDispense":
+				case "MedicationRequest":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
 						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
-						MedicationDispense medicationDispense = (MedicationDispense)parser2.parseResource(filteredResults);
-						handleMedicationDispense(ecr,medicationDispense);
-						break;
-					}
-				case "MedicationOrder":
-					if(!filteredResults.equalsIgnoreCase("{}")) {
-						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
-						MedicationOrder medicationOrder = (MedicationOrder)parser2.parseResource(filteredResults);
-						handleMedicationOrder(ecr,medicationOrder);
+						MedicationRequest medicationRequest = (MedicationRequest)parser3.parseResource(filteredResults);
+						handleMedicationRequest(ecr,medicationRequest);
 						break;
 					}
 				case "MedicationStatement":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
 						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
-						MedicationStatement medicationStatement = (MedicationStatement)parser2.parseResource(filteredResults);
+						MedicationStatement medicationStatement = (MedicationStatement)parser3.parseResource(filteredResults);
 						handleMedicationStatement(ecr,medicationStatement);
 						break;
 					}
 				case "Observation":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
 						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
-						Observation observation = (Observation)parser2.parseResource(filteredResults);
+						Observation observation = (Observation)parser3.parseResource(filteredResults);
 						handleObservation(ecr,observation);
 						break;
 					}
 				case "Procedure":
 					if(!filteredResults.equalsIgnoreCase("{}")) {
 						filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
-						Procedure procedure = (Procedure)parser2.parseResource(filteredResults);
+						Procedure procedure = (Procedure)parser3.parseResource(filteredResults);
 						handleProcedure(ecr,procedure);
 						break;
 					}
@@ -163,13 +160,67 @@ public class CQLFHIR2ECRService {
 				case "StringType":
 					addStringResultByResultKey(ecr,result);
 					break;
+				case "DateTimeType":
+				case "DateTime":
+					addDateTimeResultByResultKey(ecr,result);
+					break;
 				}
 			}
 		}
 		return ecr;
 	}
 	
-	void handleList(ECR ecr,String list) {
+	public void initGlobalBundleFromResults(ECR ecr,ArrayNode cqlResults) {
+		globalBundle = new Bundle();
+		for(JsonNode result:cqlResults) {
+			log.debug("Result:"+result.toString());
+			if(result.get("resultType") != null) {
+				String resultType = result.get("resultType").asText();
+				String filteredResults = "";
+				switch(resultType) {
+				case "Patient":
+				case "Condition":
+				case "MedicationAdministration":
+				case "MedicationRequest":
+				case "MedicationStatement":
+				case "Observation":
+				case "Procedure":
+					filteredResults = fhirFilterService.applyFilter(result.get("result"),false);
+					
+					if(!filteredResults.equalsIgnoreCase("{}")) {
+						Resource resource = (Resource)parser3.parseResource(filteredResults);
+						globalBundle.addEntry(new BundleEntryComponent().setResource(resource));
+						break;
+					}
+				case "FhirBundleCursorStu3":
+				case "List":
+					String listString = result.get("result").asText();
+					log.debug("HANDLE LIST --- inputString:"+listString);
+					
+					//Check for json list. Handling only json resources.
+					if(listString.substring(0, 2).equalsIgnoreCase("[{")) {
+						ArrayNode arrayNode = null;
+						try {
+							arrayNode = (ArrayNode)objectMapper.readTree(listString);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						for(JsonNode node : arrayNode) {
+							log.debug("HANDLE LIST --- node:"+node.toString());
+							String filteredResource = fhirFilterService.applyFilter(node,true);
+							IBaseResource resource = parser3.parseResource(filteredResource);
+							globalBundle.addEntry(new BundleEntryComponent().setResource((Resource)resource));
+						}
+					}
+					/*handleList(ecr,result.get("result").asText(),result.get("name").asText());*/
+					break;
+				}
+			}
+		}
+	}
+	
+	void handleList(ECR ecr,String list,String keyName) {
 		log.debug("HANDLE LIST --- inputString:"+list);
 		//Check for json list. Handling only json resources.
 		if(list.substring(0, 2).equalsIgnoreCase("[{")) {
@@ -184,16 +235,16 @@ public class CQLFHIR2ECRService {
 			for(JsonNode node : arrayNode) {
 				log.debug("HANDLE LIST --- node:"+node.toString());
 				String filteredResource = fhirFilterService.applyFilter(node,true);
-				IResource resource = (IResource)parser2.parseResource(filteredResource);
-				inputBundle.addEntry(new Entry().setResource(resource));
+				IBaseResource resource = parser3.parseResource(filteredResource);
+				inputBundle.addEntry(new BundleEntryComponent().setResource((Resource)resource));
 			}
-			handleBundle(ecr,inputBundle);
+			handleBundle(ecr,inputBundle,keyName);
 		}
 	}
 	
-	void handleBundle(ECR ecr, Bundle bundle) {
-		for(Entry entry : bundle.getEntry()) {
-			IResource resource = entry.getResource();
+	void handleBundle(ECR ecr, Bundle bundle,String keyName) {
+		for(BundleEntryComponent entry : bundle.getEntry()) {
+			Resource resource = entry.getResource();
 			if(resource != null) {
 				if(resource instanceof Patient) {
 					handlePatient(ecr,(Patient)resource);
@@ -207,16 +258,17 @@ public class CQLFHIR2ECRService {
 				if(resource instanceof MedicationAdministration) {
 					handleMedicationAdministration(ecr,(MedicationAdministration)resource);
 				}
-				if(resource instanceof MedicationDispense) {
-					handleMedicationDispense(ecr,(MedicationDispense)resource);
-				}
-				if(resource instanceof MedicationOrder) {
-					handleMedicationOrder(ecr,(MedicationOrder)resource);
+				if(resource instanceof MedicationRequest) {
+					handleMedicationRequest(ecr,(MedicationRequest)resource);
 				}
 				if(resource instanceof MedicationStatement) {
 					handleMedicationStatement(ecr,(MedicationStatement)resource);
 				}
 				if(resource instanceof Condition) {
+					if(keyName.equalsIgnoreCase("42.Condition.Diagnosis")) {
+						log.debug("CONDITION --- Found diagnosis key!");
+						addDiagnosis(ecr,(Condition)resource);
+					}
 					handleCondition(ecr,(Condition)resource);
 				}
 				if(resource instanceof Encounter) {
@@ -249,20 +301,64 @@ public class CQLFHIR2ECRService {
 		}
 	}
 
-	void handlePatient(ECR ecr, ca.uhn.fhir.model.dstu2.resource.Patient patient) {
+	void handlePatient(ECR ecr, org.hl7.fhir.dstu3.model.Patient patient) {
 		log.info("PATIENT --- ");
-		ecr.getPatient().setbirthDate(patient.getBirthDate().toString());
-		IDatatype deceasedValue = patient.getDeceased();
-		if (deceasedValue != null && deceasedValue instanceof DateDt) {
-			ecr.getPatient().setdeathDate(DateUtil.dateToStdString(((DateDt) deceasedValue).getValue()));
+		if(patient.getBirthDate() != null) {
+			ecr.getPatient().setbirthDate(patient.getBirthDate().toString());
 		}
-		ecr.getPatient().setsex(patient.getGender());
+		if(patient.getIdentifier() != null && patient.getIdentifierFirstRep() != null) {
+			Identifier identifier = patient.getIdentifierFirstRep();
+			String identifierSystem = identifier.getSystem() != null ? identifier.getSystem() : "";
+			String identifierValue = identifier.getValue() != null ? identifier.getValue() : "";
+			TypeableID ecrIdentifier = new TypeableID();
+			ecrIdentifier.settype(identifierSystem);
+			ecrIdentifier.setvalue(identifierValue);
+			ecr.getPatient().getid().add(ecrIdentifier);
+		}
+		Type deceasedValue = patient.getDeceased();
+		if (deceasedValue != null && deceasedValue instanceof DateTimeType) {
+			log.debug("*~*Andrey*~* Setting deathDate from handlePatient");
+			String deathDate = DateUtil.dateToStdString(((DateTimeType) deceasedValue).getValue());
+			log.debug("*~*Andrey*~* from patient.deceased value:"+deathDate);
+			ecr.getPatient().setdeathDate(deathDate);
+		}
+		for(Extension extension:patient.getExtension()) {
+			if(extension.getUrlElement().equals("http://hl7.org/fhir/us/core/StructureDefinition/us-core-race")) {
+				Coding coding = (Coding)extension.getExtensionFirstRep().getValue();
+				ecr.getPatient().setrace(new gatech.edu.STIECR.JSON.CodeableConcept(coding.getSystem(),coding.getDisplay(),coding.getCode()));
+			}
+			if(extension.getUrlElement().equals("http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity")) {
+				Coding coding = (Coding)extension.getExtensionFirstRep().getValue();
+				ecr.getPatient().setethnicity(new gatech.edu.STIECR.JSON.CodeableConcept(coding.getSystem(),coding.getDisplay(),coding.getCode()));
+			}
+		}
+		PatientCommunicationComponent preferredCommunication = null;
+		for(PatientCommunicationComponent communication:patient.getCommunication()) {
+			if(communication.getPreferred()) {
+				preferredCommunication = communication;
+			}
+		}
+		if(preferredCommunication == null && !patient.getCommunication().isEmpty()) {
+			preferredCommunication = patient.getCommunicationFirstRep();
+		}
+		if(preferredCommunication != null && !preferredCommunication.getLanguage().isEmpty()) {
+			Coding coding = preferredCommunication.getLanguage().getCodingFirstRep();
+			ecr.getPatient().setpreferredLanguage(new gatech.edu.STIECR.JSON.CodeableConcept(coding.getSystem(),coding.getDisplay(),coding.getCode()));
+		}
+		if(!patient.getAddress().isEmpty()) {
+			Address address = patient.getAddressFirstRep();
+			String addressString = HAPIFHIRUtil.addressToString(address);
+			ecr.getPatient().setstreetAddress(addressString);
+		}
+		if(patient.getGender() != null) {
+			ecr.getPatient().setsex(patient.getGender().toCode());
+		}
 	}
 
 	void handleRelatedPerson(ECR ecr, RelatedPerson relatedPerson) {
 		log.info("RELATED PERSON --- ");
-		Name nameToSearch = new Name(relatedPerson.getName().getFamily().get(0).getValue(),
-				relatedPerson.getName().getGiven().get(0).getValue());
+		Name nameToSearch = new Name(relatedPerson.getName().get(0).getFamily(),
+				relatedPerson.getName().get(0).getGiven().get(0).getValueNotNull());
 		ParentGuardian ecrParentGuardian = ecr.findParentGuardianWithName(nameToSearch);
 		if (ecrParentGuardian == null) {
 			ecrParentGuardian = new ParentGuardian();
@@ -277,9 +373,15 @@ public class CQLFHIR2ECRService {
 	void handlePractitioner(ECR ecr, Practitioner provider) {
 		log.info("PRACTITIONER --- ");
 		Provider ecrProvider = new Provider();
-		ecrProvider.setaddress(provider.getAddress().get(0).getText());
-		ecrProvider.setcountry(provider.getAddress().get(0).getCountry());
-		for (ContactPointDt contact : provider.getTelecom()) {
+		if(provider.getAddress() != null && provider.getAddressFirstRep() != null) {
+			if(provider.getAddressFirstRep().getText() != null) {
+				ecrProvider.setaddress(provider.getAddressFirstRep().getText());
+			}
+			if(provider.getAddressFirstRep().getCountry() != null) {
+				ecrProvider.setcountry(provider.getAddressFirstRep().getCountry());
+			}
+		}
+		for (ContactPoint contact : provider.getTelecom()) {
 			if (contact.getSystem().equals("Phone") && ecrProvider.getphone().isEmpty()) {
 				ecrProvider.setphone(contact.getValue());
 			} else if (contact.getSystem().equals("Email") && ecrProvider.getemail().isEmpty()) {
@@ -298,37 +400,60 @@ public class CQLFHIR2ECRService {
 	}
 
 	void handleMedicationAdministration(ECR ecr, MedicationAdministration medicationAdministration ) {
-		CodeableConcept ecrCode = new CodeableConcept();
+		gatech.edu.STIECR.JSON.CodeableConcept ecrCode = new gatech.edu.STIECR.JSON.CodeableConcept();
 		gatech.edu.STIECR.JSON.Medication ecrMedication = new gatech.edu.STIECR.JSON.Medication();
 		log.info("MEDICATIONADMINISTRATION --- Trying medicationAdministration: "
 				+ medicationAdministration.getId());
-		IDatatype medicationCodeUntyped = medicationAdministration.getMedication();
+		Type medicationCodeUntyped = medicationAdministration.getMedication();
 		log.info("MEDICATIONADMINISTRATION --- medication code element class: "
 				+ medicationCodeUntyped.getClass());
-		if (medicationCodeUntyped instanceof CodeableConceptDt) {
-			CodeableConceptDt code = (CodeableConceptDt) medicationCodeUntyped;
-			log.info("MEDICATIONADMINISTRATION --- Trying code with this many codings: "
-					+ code.getCoding().size());
-			for (CodingDt coding : code.getCoding()) {
+		
+		CodeableConcept code  = null;
+		
+		if (medicationCodeUntyped instanceof CodeableConcept) {
+			code = (CodeableConcept) medicationCodeUntyped;
+		} else if (medicationCodeUntyped instanceof Reference) {
+			Reference reference = (Reference) medicationCodeUntyped;
+			Medication medication = (Medication)findResourceFromReferenceInGlobalBundle(reference);
+			code = medication.getCode();
+		}
+		
+		log.info("MEDICATIONADMINISTRATION --- Trying code with this many codings: "
+				+ code.getCoding().size());
+		if(code != null) {
+			for (Coding coding : code.getCoding()) {
 				log.info("MEDICATIONADMINISTRATION --- Trying coding: " + coding.getDisplay());
-				CodeableConcept concept = FHIRCoding2ECRConcept(coding);
-				log.info("MEDICATIONADMINISTRATION --- Translated to ECRconcept:" + concept.toString());
-				ecrMedication.setCode(concept.getcode());
-				ecrMedication.setSystem(concept.getsystem());
-				ecrMedication.setDisplay(concept.getdisplay());
-				ecrCode.setcode(concept.getcode());
-				ecrCode.setsystem(concept.getsystem());
-				ecrCode.setdisplay(concept.getdisplay());
+				gatech.edu.STIECR.JSON.CodeableConcept ecrConcept = FHIRCoding2ECRConcept(coding);
+				log.info("MEDICATIONADMINISTRATION --- Translated to ECRconcept:" + ecrConcept.toString());
+				ecrMedication.setCode(ecrConcept.getcode());
+				ecrMedication.setSystem(ecrConcept.getsystem());
+				ecrMedication.setDisplay(ecrConcept.getdisplay());
+				ecrCode.setcode(ecrConcept.getcode());
+				ecrCode.setsystem(ecrConcept.getsystem());
+				ecrCode.setdisplay(ecrConcept.getdisplay());
 			}
 		}
-		if (!medicationAdministration.getDosage().isEmpty()) {
-			Dosage ecrDosage = new Dosage();
-			ecrDosage.setValue(medicationAdministration.getDosage().getQuantity().getValue().toString());
-			ecrDosage.setUnit(medicationAdministration.getDosage().getQuantity().getUnit());
+		MedicationAdministrationDosageComponent dosage = medicationAdministration.getDosage();
+		if (!dosage.isEmpty()) {
+			gatech.edu.STIECR.JSON.Dosage ecrDosage = new gatech.edu.STIECR.JSON.Dosage();
+			if(dosage.hasDose()) {
+				ecrDosage.setValue(dosage.getDose().getValue().toPlainString());
+				ecrDosage.setUnit(dosage.getDose().getUnit());
+			}
 			ecrMedication.setDosage(ecrDosage);
 		}
-		if (!medicationAdministration.getEffectiveTime().isEmpty()) {
-			ecrMedication.setDate(HAPIFHIRUtil.getDate(medicationAdministration.getEffectiveTime()).toString());
+		try
+		{
+			if (medicationAdministration.getEffective() instanceof DateTimeType) {
+				ecrMedication.setDate(HAPIFHIRUtil.getDate(medicationAdministration.getEffectiveDateTimeType()).toString());
+			}
+			else if (medicationAdministration.getEffective() instanceof Period) {
+				ecrMedication.setDate(HAPIFHIRUtil.getDate(medicationAdministration.getEffectivePeriod().getStartElement()).toString());
+			}
+		}
+		catch(FHIRException e) {
+			log.error(e.getMessage());
+			log.error("Typing error non-halting. Continuing.");
 		}
 		log.info("MEDICATIONADMINISTRATION --- ECRCode: " + ecrCode);
 		if (ControllerUtils.isSTIMed(ecrCode)
@@ -339,260 +464,193 @@ public class CQLFHIR2ECRService {
 			log.info("MEDICATIONADMINISTRATION --- Didn't Match or found duplicate! " + ecrCode);
 		}
 
-		if (!medicationAdministration.getReasonGiven().isEmpty()) {
-			for (CodeableConceptDt reason : medicationAdministration.getReasonGiven()) {
+		if (!medicationAdministration.getNotGiven()) {
+			for (CodeableConcept reason : medicationAdministration.getReasonCode()) {
 				handleConditionConceptCode(ecr, reason);
 			}
 		}
 		
 	}
 
-	void handleMedicationDispense(ECR ecr, MedicationDispense medicationDispense) {
-		CodeableConcept ecrCode = new CodeableConcept();
+	void handleMedicationRequest(ECR ecr, MedicationRequest medicationRequest) {
+		gatech.edu.STIECR.JSON.CodeableConcept ecrCode = new gatech.edu.STIECR.JSON.CodeableConcept();
 		gatech.edu.STIECR.JSON.Medication ecrMedication = new gatech.edu.STIECR.JSON.Medication();
-		log.info("MEDICATIONDISPENSE --- Trying medicationDispense: " + medicationDispense.getId());
+		log.info("MEDICATIONREQUEST --- Trying medicationRequest: " + medicationRequest.getId());
+		Type medicationCodeUntyped = medicationRequest.getMedication();
+		log.info("MEDICATIONREQUEST --- medication code element class: " + medicationCodeUntyped.getClass());
 
-		IDatatype medicationCodeUntyped = medicationDispense.getMedication();
-		if (medicationCodeUntyped == null && medicationDispense.getAuthorizingPrescription() != null) {
-			medicationCodeUntyped = ((MedicationOrder) medicationDispense.getAuthorizingPrescription().get(0)
-					.getResource()).getMedication();
+		CodeableConcept code = null;
+
+		if (medicationCodeUntyped instanceof CodeableConcept) {
+			code = (CodeableConcept) medicationCodeUntyped;
+		} else if (medicationCodeUntyped instanceof Reference) {
+			Reference reference = (Reference) medicationCodeUntyped;
+			Medication medication = (Medication)findResourceFromReferenceInGlobalBundle(reference);
+			log.info("MEDICATIONREQUEST --- found medication resource: " + medicationCodeUntyped.getClass());
+			code = medication.getCode();
 		}
-		if (medicationCodeUntyped == null) {
-			log.info("MEDICATIONDISPENSE --- FAILED TO FIND MEDICATION - SKIPPING!!");
-			return;
-		}
-		log.info("MEDICATIONDISPENSE --- medication code element class: " + medicationCodeUntyped.getClass());
-
-		CodeableConceptDt code = null;
-
-		if (medicationCodeUntyped instanceof CodeableConceptDt) {
-			code = (CodeableConceptDt) medicationCodeUntyped;
-		} else if (medicationCodeUntyped instanceof ResourceReferenceDt) {
-			code = ((Medication) ((ResourceReferenceDt) medicationCodeUntyped).getResource()).getCode();
-		}
-		if (code != null) {
-			log.info("MEDICATIONDISPENSE --- Trying code with this many codings: " + code.getCoding().size());
-			for (CodingDt coding : code.getCoding()) {
-				log.info("MEDICATIONDISPENSE --- Trying coding: " + coding.getDisplay());
-				CodeableConcept concept = FHIRCoding2ECRConcept(coding);
-
-				log.info("\n----------> MEDICATIONDISPENSE --- Translated to ECRconcept:" + concept.toString());
-				ecrMedication.setCode(concept.getcode());
-				ecrMedication.setSystem(concept.getsystem());
-				ecrMedication.setDisplay(concept.getdisplay());
-				ecrCode.setcode(concept.getcode());
-				ecrCode.setsystem(concept.getsystem());
-				ecrCode.setdisplay(concept.getdisplay());
-
-				if (ControllerUtils.isSTIMed(ecrCode)) {
-					break; // Found a code already so stop here.
-				}
-			}
-			if (ControllerUtils.isSTIMed(ecrCode)) {
-				for (ca.uhn.fhir.model.dstu2.resource.MedicationDispense.DosageInstruction dosageInstruction : medicationDispense
-						.getDosageInstruction()) {
-					Dosage ecrDosage = new Dosage();
-					IDatatype doseUntyped = dosageInstruction.getDose();
-					if (doseUntyped != null) {
-						log.info("MEDICATIONDISPENSE --- Found Dosage: " + doseUntyped.toString());
-						if (doseUntyped instanceof SimpleQuantityDt) {
-							SimpleQuantityDt doseTyped = (SimpleQuantityDt) doseUntyped;
-							log.info("MEDICATIONDISPENSE --- Dosage is of SimpleQuentityDt Type");
-							ecrDosage.setValue(doseTyped.getValue().toString());
-							ecrDosage.setUnit(doseTyped.getUnit());
-							ecrMedication.setDosage(ecrDosage);
-						}
-						String periodUnit = dosageInstruction.getTiming().getRepeat().getPeriodUnits();
-						BigDecimal period = dosageInstruction.getTiming().getRepeat().getPeriod();
-						Integer frequency = dosageInstruction.getTiming().getRepeat().getFrequency();
-						String commonFrequency = "" + frequency + " times per " + period + " " + periodUnit;
-						log.info("MEDICATIONDISPENSE --- Found Frequency: " + commonFrequency);
-						ecrMedication.setFrequency(commonFrequency);
-					} else {
-						log.info("MEDICATIONDISPENSE --- Not Found");
-					}
-				}
-				Date timeDispensed = medicationDispense.getWhenHandedOver();
-				log.info("MEDICATIONDISPENSE --- Found Handed Over Date: " + timeDispensed);
-				if (timeDispensed != null) {
-					ecrMedication.setDate(DateUtil.dateTimeToStdString(timeDispensed));
-				}
-				log.info("MEDICATIONDISPENSE --- ECRCode: " + ecrCode);
-				if (!ecr.getPatient().getMedicationProvided().contains(ecrMedication)) {
-					log.info("=======>MEDICATIONDISPENSE --- Found New Entry and added to ECR: " + ecrCode);
-					ecr.getPatient().getMedicationProvided().add(ecrMedication);
-				} else {
-					log.info("MEDICATIONDISPENSE --- Didn't Match or found duplicate! " + ecrCode);
-				}
-			} else {
-				log.info("MEDICATIONDISPENSE --- Didn't Match or found duplicate! " + ecrCode);
-			}
-		} else {
-			log.info("FAILED TO FIND MEDICATION CODE.");
-		}
-	}
-
-	void handleMedicationOrder(ECR ecr, MedicationOrder medicationOrder) {
-		CodeableConcept ecrCode = new CodeableConcept();
-		gatech.edu.STIECR.JSON.Medication ecrMedication = new gatech.edu.STIECR.JSON.Medication();
-		log.info("MEDICATIONORDER --- Trying medicationOrder: " + medicationOrder.getId());
-		IDatatype medicationCodeUntyped = medicationOrder.getMedication();
-		log.info("MEDICATIONORDER --- medication code element class: " + medicationCodeUntyped.getClass());
-
-		CodeableConceptDt code = null;
-
-		if (medicationCodeUntyped instanceof CodeableConceptDt) {
-			code = (CodeableConceptDt) medicationCodeUntyped;
-		} else if (medicationCodeUntyped instanceof ResourceReferenceDt) {
-			code = ((Medication) ((ResourceReferenceDt) medicationCodeUntyped).getResource()).getCode();
-		}
-		if (code != null) {
-			log.info("MEDICATIONORDER --- Trying code with this many codings: " + code.getCoding().size());
-			for (CodingDt coding : code.getCoding()) {
-				log.info("MEDICATIONORDER --- Trying coding: " + coding.getDisplay());
-				CodeableConcept concept = FHIRCoding2ECRConcept(coding);
-				log.info("MEDICATIONORDER --- Translated to ECRconcept:" + concept.toString());
-				ecrMedication.setCode(concept.getcode());
-				ecrMedication.setSystem(concept.getsystem());
-				ecrMedication.setDisplay(concept.getdisplay());
-				ecrCode.setcode(concept.getcode());
-				ecrCode.setsystem(concept.getsystem());
-				ecrCode.setdisplay(concept.getdisplay());
-				if (ControllerUtils.isSTIMed(ecrCode)) {
-					break; // Found a code already so stop here.
-				}
-			}
-		}
-		if (ControllerUtils.isSTIMed(ecrCode)) {
-			for (DosageInstruction dosageInstruction : medicationOrder.getDosageInstruction()) {
-				Dosage ecrDosage = new Dosage();
-				IDatatype doseUntyped = dosageInstruction.getDose();
-				if (doseUntyped != null) {
-					log.info("MEDICATIONORDER --- Found Dosage: " + doseUntyped.toString());
-					if (doseUntyped instanceof SimpleQuantityDt) {
-						SimpleQuantityDt doseTyped = (SimpleQuantityDt) doseUntyped;
-						log.info("MEDICATIONORDER --- Dosage is of SimpleQuentityDt Type");
-						ecrDosage.setValue(doseTyped.getValue().toString());
-						ecrDosage.setUnit(doseTyped.getUnit());
-						ecrMedication.setDosage(ecrDosage);
-					}
-					String periodUnit = dosageInstruction.getTiming().getRepeat().getPeriodUnits();
-					BigDecimal period = dosageInstruction.getTiming().getRepeat().getPeriod();
-					Integer frequency = dosageInstruction.getTiming().getRepeat().getFrequency();
-					// String commonFrequency= "" + frequency + " times per " + period + " " +
-					// periodUnit;
-					// log.info("MEDICATIONORDER --- Found Frequency: " + commonFrequency);
-					// ecrMedication.setFrequency(commonFrequency);
-				} else {
-					log.info("MEDICATIONORDER --- DOSE NOT FOUND.");
-				}
-			}
-
-			log.info("MEDICATIONORDER --- ECRCode: " + ecrCode);
-			if (ControllerUtils.isSTIMed(ecrCode)
-					&& !ecr.getPatient().getMedicationProvided().contains(ecrMedication)) {
-				log.info("MEDICATIONORDER --- Found New Entry: " + ecrCode);
+		if (code != null && !code.getCoding().isEmpty()) {
+			log.info("MEDICATIONREQUEST --- Trying coding: " + code.getCodingFirstRep().getDisplay());
+			gatech.edu.STIECR.JSON.CodeableConcept concept = FHIRCoding2ECRConcept(code.getCodingFirstRep());
+			log.info("MEDICATIONREQUEST --- Translated to ECRconcept:" + concept.toString());
+			ecrMedication.setCode(concept.getcode());
+			ecrMedication.setSystem(concept.getsystem());
+			ecrMedication.setDisplay(concept.getdisplay());
+			ecrCode.setcode(concept.getcode());
+			ecrCode.setsystem(concept.getsystem());
+			ecrCode.setdisplay(concept.getdisplay());
+			log.info("MEDICATIONREQUEST --- ECRCode: " + ecrCode);
+			if (!ecr.getPatient().getMedicationProvided().contains(ecrMedication)) {
+				log.info("MEDICATIONREQUEST --- Found New Entry: " + ecrCode);
 				ecr.getPatient().getMedicationProvided().add(ecrMedication);
 			} else {
-				log.info("MEDICATIONORDER --- Didn't Match or found duplicate! " + ecrCode);
+				log.info("MEDICATIONREQUEST --- Didn't Match or found duplicate! " + ecrCode);
 			}
-			// String periodUnit =
-			// dosageInstruction.getTiming().getRepeat().getPeriodUnits();
-			// BigDecimal period = dosageInstruction.getTiming().getRepeat().getPeriod();
-			// Integer frequency = dosageInstruction.getTiming().getRepeat().getFrequency();
-			// /*String commonFrequency= "" + frequency + " times per " + period + " " +
-			// periodUnit;
-			// log.info("MEDICATIONORDER --- Found Frequency: " + commonFrequency);
-			// ecrMedication.setFrequency(commonFrequency); */
-		}
-
-		PeriodDt period = medicationOrder.getDispenseRequest().getValidityPeriod();
-		if ( period != null && period.getStart() != null ) {
-			log.info("MEDICATIONORDER --- Found Validity Period: " + period.getStart().toLocaleString());
-			ecrMedication.setDate(period.getStart().toString());
-		}
-		log.info("MEDICATIONORDER --- ECRCode: " + ecrCode);
-		if (ControllerUtils.isSTIMed(ecrCode)
-				&& !ecr.getPatient().getMedicationProvided().contains(ecrMedication)) {
-			log.info("MEDICATIONORDER --- Found New Entry: " + ecrCode);
-			ecr.getPatient().getMedicationProvided().add(ecrMedication);
-		} else {
-			log.info("MEDICATIONORDER --- Didn't Match or found duplicate! " + ecrCode);
-		}
-		if (medicationOrder.getReason() != null && !medicationOrder.getReason().isEmpty()) {
-			if (medicationOrder.getReason() instanceof CodeableConceptDt) {
-				handleConditionConceptCode(ecr, (CodeableConceptDt) medicationOrder.getReason());
-			}
-			if (medicationOrder.getReason() != null && !medicationOrder.getReason().isEmpty()) {
-				if (medicationOrder.getReason() instanceof CodeableConceptDt) {
-					handleConditionConceptCode(ecr, (CodeableConceptDt) medicationOrder.getReason());
+			for (Dosage dosageInstruction : medicationRequest.getDosageInstruction()) {
+				gatech.edu.STIECR.JSON.Dosage ecrDosage = new gatech.edu.STIECR.JSON.Dosage();
+				Type doseUntyped = dosageInstruction.getDose();
+				if (doseUntyped != null) {
+					log.info("MEDICATIONREQUEST --- Found Dosage: " + doseUntyped.toString());
+					if (doseUntyped instanceof SimpleQuantity) {
+						SimpleQuantity doseTyped = (SimpleQuantity) doseUntyped;
+						log.info("MEDICATIONREQUEST --- Dosage is of SimpleQuentity Type");
+						ecrDosage.setValue(doseTyped.getValue().toString());
+						ecrDosage.setUnit(doseTyped.getUnit());
+					}
+					else if (doseUntyped instanceof Range) {
+						Range dosageRange = (Range) doseUntyped;
+						BigDecimal high = dosageRange.getHigh().getValue();
+						BigDecimal low = dosageRange.getLow().getValue();
+						BigDecimal mean = high.add(low);
+						mean = mean.divide(new BigDecimal(2));
+						ecrDosage.setValue(mean.toString());
+						ecrDosage.setUnit(dosageRange.getHigh().getUnit());
+					}
+					//TODO: Handle timing when timing is code
+					if(dosageInstruction.getTiming() != null) {
+						if(dosageInstruction.getTiming().getRepeat() != null) {
+							TimingRepeatComponent repeat = dosageInstruction.getTiming().getRepeat();
+							if(repeat.hasPeriod() && repeat.hasPeriodUnit() && repeat.hasFrequency()) {
+								String periodUnit = repeat.getPeriodUnit().getDisplay();
+								BigDecimal period = repeat.getPeriod();
+								Integer frequency = repeat.getFrequency();
+								String commonFrequency= "" + frequency
+										+ " times per "
+										+ period +
+										" " +periodUnit;
+								ecrMedication.setFrequency(commonFrequency);
+							}
+						}
+					}
+					ecrMedication.setDosage(ecrDosage);
+				}
+				else {
+					log.info("MEDICATIONREQUEST --- DOSE NOT FOUND.");
 				}
 			}
-		} else {
-			log.info("MEDICATIONORDER --- Didn't Match  " + ecrCode);
+
+			Date authoredOn = medicationRequest.getAuthoredOn();
+			if(authoredOn != null) {
+				ecrMedication.setDate(DateUtil.dateTimeToStdString(authoredOn));
+			}
+			if (medicationRequest.getReasonCode() != null && !medicationRequest.getReasonCode().isEmpty()) {
+				handleConditionConceptCode(ecr, medicationRequest.getReasonCodeFirstRep());
+			}
 		}
 	}
 
 	void handleMedicationStatement(ECR ecr, MedicationStatement medicationStatement) {
-		CodeableConcept ecrCode = new CodeableConcept();
+		gatech.edu.STIECR.JSON.CodeableConcept ecrCode = new gatech.edu.STIECR.JSON.CodeableConcept();
 		gatech.edu.STIECR.JSON.Medication ecrMedication = new gatech.edu.STIECR.JSON.Medication();
-		log.info("MEDICATIONSTATEMENT  --- Trying medicationOrder: " + medicationStatement.getId());
-		IDatatype medicationCodeUntyped = medicationStatement.getMedication();
-		log.info("MEDICATIONSTATEMENT  --- medication code element class: " + medicationCodeUntyped.getClass());
-		if (medicationCodeUntyped instanceof CodeableConceptDt) {
-			CodeableConceptDt code = (CodeableConceptDt) medicationCodeUntyped;
-			log.info("MEDICATIONSTATEMENT  --- Trying code with this many codings: " + code.getCoding().size());
-			for (CodingDt coding : code.getCoding()) {
-				log.info("MEDICATIONSTATEMENT  --- Trying coding: " + coding.getDisplay());
-				CodeableConcept concept = FHIRCoding2ECRConcept(coding);
-				log.info("MEDICATIONSTATEMENT  --- Translated to ECRconcept:" + concept.toString());
-				ecrMedication.setCode(concept.getcode());
-				ecrMedication.setSystem(concept.getsystem());
-				ecrMedication.setDisplay(concept.getdisplay());
-				ecrCode.setcode(concept.getcode());
-				ecrCode.setsystem(concept.getsystem());
-				ecrCode.setdisplay(concept.getdisplay());
+		log.info("MEDICATIONSTATEMENT --- Trying medicationStatement: " + medicationStatement.getId());
+		Type medicationCodeUntyped = medicationStatement.getMedication();
+		log.info("MEDICATIONSTATEMENT --- medication code element class: " + medicationCodeUntyped.getClass());
+
+		CodeableConcept code = null;
+
+		if (medicationCodeUntyped instanceof CodeableConcept) {
+			code = (CodeableConcept) medicationCodeUntyped;
+		} else if (medicationCodeUntyped instanceof Reference) {
+			code = ((Medication) ((Reference) medicationCodeUntyped).getResource()).getCode();
+		}
+		if (code != null && !code.getCoding().isEmpty()) {
+			log.info("MEDICATIONSTATEMENT --- Trying coding: " + code.getCodingFirstRep().getDisplay());
+			gatech.edu.STIECR.JSON.CodeableConcept concept = FHIRCoding2ECRConcept(code.getCodingFirstRep());
+			log.info("MEDICATIONSTATEMENT --- Translated to ECRconcept:" + concept.toString());
+			ecrMedication.setCode(concept.getcode());
+			ecrMedication.setSystem(concept.getsystem());
+			ecrMedication.setDisplay(concept.getdisplay());
+			ecrCode.setcode(concept.getcode());
+			ecrCode.setsystem(concept.getsystem());
+			ecrCode.setdisplay(concept.getdisplay());
+			log.info("MEDICATIONSTATEMENT --- ECRCode: " + ecrCode);
+			if (!ecr.getPatient().getMedicationProvided().contains(ecrMedication)) {
+				log.info("MEDICATIONSTATEMENT --- Found New Entry: " + ecrCode);
+				ecr.getPatient().getMedicationProvided().add(ecrMedication);
+			} else {
+				log.info("MEDICATIONSTATEMENT --- Didn't Match or found duplicate! " + ecrCode);
+			}
+			for (Dosage dosageInstruction : medicationStatement.getDosage()) {
+				gatech.edu.STIECR.JSON.Dosage ecrDosage = new gatech.edu.STIECR.JSON.Dosage();
+				Type doseUntyped = dosageInstruction.getDose();
+				if (doseUntyped != null) {
+					log.info("MEDICATIONSTATEMENT --- Found Dosage: " + doseUntyped.toString());
+					if (doseUntyped instanceof SimpleQuantity) {
+						SimpleQuantity doseTyped = (SimpleQuantity) doseUntyped;
+						log.info("MEDICATIONSTATEMENT --- Dosage is of SimpleQuentity Type");
+						ecrDosage.setValue(doseTyped.getValue().toString());
+						ecrDosage.setUnit(doseTyped.getUnit());
+					}
+					else if (doseUntyped instanceof Range) {
+						Range dosageRange = (Range) doseUntyped;
+						BigDecimal high = dosageRange.getHigh().getValue();
+						BigDecimal low = dosageRange.getLow().getValue();
+						BigDecimal mean = high.add(low);
+						mean = mean.divide(new BigDecimal(2));
+						ecrDosage.setValue(mean.toString());
+						ecrDosage.setUnit(dosageRange.getHigh().getUnit());
+					}
+					if(dosageInstruction.getTiming() != null) {
+						if(dosageInstruction.getTiming().getRepeat() != null) {
+							TimingRepeatComponent repeat = dosageInstruction.getTiming().getRepeat();
+							if(repeat.hasPeriod() && repeat.hasPeriodUnit() && repeat.hasFrequency()) {
+								String periodUnit = repeat.getPeriodUnit().getDisplay();
+								BigDecimal period = repeat.getPeriod();
+								Integer frequency = repeat.getFrequency();
+								String commonFrequency= "" + frequency
+										+ " times per "
+										+ period +
+										" " +periodUnit;
+								ecrMedication.setFrequency(commonFrequency);
+							}
+						}
+					}
+					ecrMedication.setDosage(ecrDosage);
+				}
+				else {
+					log.info("MEDICATIONSTATEMENT --- DOSE NOT FOUND.");
+				}
+			}
+			if (!medicationStatement.getDateAssertedElement().isEmpty()) {
+				if (medicationStatement.getDateAsserted() != null) {
+					String dateTimeAsString = DateUtil.dateTimeToStdString(medicationStatement.getDateAsserted());
+					log.info("MEDICATIONSTATEMENT  --- Found Medication Date: " + dateTimeAsString);
+					ecrMedication.setDate(dateTimeAsString);
+				}
+				log.info("MEDICATIONSTATEMENT  --- ECRCode: " + ecrCode);
+			}
+			if (medicationStatement.getReasonCode() != null && !medicationStatement.getReasonCode().isEmpty()) {
+				handleConditionConceptCode(ecr, medicationStatement.getReasonCodeFirstRep());
+			}
+			if (!ecr.getPatient().getMedicationProvided().contains(ecrMedication)) {
+				log.info("MEDICATIONSTATEMENT  --- Found New Entry: " + ecrCode);
+				ecr.getPatient().getMedicationProvided().add(ecrMedication);
+			} else {
+				log.info("MEDICATIONSTATEMENT  --- Didn't Match or found duplicate! " + ecrCode);
 			}
 		}
-		if (!medicationStatement.getDosage().isEmpty()) {
-			Dosage ecrDosage = new Dosage();
-			IDatatype dosageQuantityUntyped = medicationStatement.getDosage().get(0).getQuantity();
-			if (dosageQuantityUntyped instanceof SimpleQuantityDt) {
-				SimpleQuantityDt dosageQuantity = (SimpleQuantityDt) dosageQuantityUntyped;
-				ecrDosage.setValue(dosageQuantity.getValue().toString());
-				ecrDosage.setUnit(dosageQuantity.getUnit().toString());
-			} else
-			if (dosageQuantityUntyped instanceof RangeDt) {
-				RangeDt dosageRange = (RangeDt) dosageQuantityUntyped;
-				BigDecimal high = dosageRange.getHigh().getValue();
-				BigDecimal low = dosageRange.getLow().getValue();
-				BigDecimal mean = high.add(low);
-				mean = mean.divide(new BigDecimal(2));
-				ecrDosage.setValue(mean.toString());
-				ecrDosage.setUnit(dosageRange.getHigh().getUnit());
-				ecrMedication.setDosage(ecrDosage);
-			}
-		}
-		if (!medicationStatement.getDateAssertedElement().isEmpty()) {
-			if (medicationStatement.getDateAsserted() != null) {
-				String dateTimeAsString = DateUtil.dateTimeToStdString(medicationStatement.getDateAsserted());
-				log.info("MEDICATIONSTATEMENT  --- Found Medication Date: " + dateTimeAsString);
-				ecrMedication.setDate(dateTimeAsString);
-			}
-			log.info("MEDICATIONSTATEMENT  --- ECRCode: " + ecrCode);
-		}
-		if (ControllerUtils.isSTIMed(ecrCode)
-				&& !ecr.getPatient().getMedicationProvided().contains(ecrMedication)) {
-			log.info("MEDICATIONSTATEMENT  --- Found New Entry: " + ecrCode);
-			ecr.getPatient().getMedicationProvided().add(ecrMedication);
-		} else {
-			log.info("MEDICATIONSTATEMENT  --- Didn't Match or found duplicate! " + ecrCode);
-		}
-		if (!medicationStatement.getReasonForUse().isEmpty()) {
-			if (medicationStatement.getReasonForUse() instanceof CodeableConceptDt) {
-				handleConditionConceptCode(ecr,
-						(CodeableConceptDt) medicationStatement.getReasonForUse());
-			}
+		if (medicationStatement.getReasonCode() != null && !medicationStatement.getReasonCode().isEmpty()) {
+			handleConditionConceptCode(ecr,medicationStatement.getReasonCodeFirstRep());
 		}
 	}
 
@@ -611,16 +669,16 @@ public class CQLFHIR2ECRService {
 		}
 		ecrImmunization.setDate(DateUtil.dateToStdString(immunization.getDate()));
 		if (!ecr.getPatient().getimmunizationHistory().contains(ecrImmunization)) {
-			log.info("Adding Immunization For " + immunization.getId().getValueAsString());
+			log.info("Adding Immunization For " + immunization.getId());
 			ecr.getPatient().getimmunizationHistory().add(ecrImmunization);
 		}
 	}
 
-	public void handleConditionConceptCode(ECR ecr, CodeableConceptDt code) {
+	public void handleConditionConceptCode(ECR ecr, CodeableConcept code) {
 		log.info("CONDITION --- Trying code with this many codings: " + code.getCoding().size());
-		for (CodingDt coding : code.getCoding()) {
+		for (Coding coding : code.getCoding()) {
 			log.info("CONDITION --- Trying coding: " + coding.getDisplay());
-			CodeableConcept concept = FHIRCoding2ECRConcept(coding);
+			gatech.edu.STIECR.JSON.CodeableConcept concept = FHIRCoding2ECRConcept(coding);
 			log.info("CONDITION --- Translated to ECRconcept:" + concept.toString());
 			if (!ecr.getPatient().getsymptoms().contains(concept)) {
 				log.info("CONDITION --- SYMPTOM MATCH!" + concept.toString());
@@ -632,18 +690,19 @@ public class CQLFHIR2ECRService {
 
 	public void handleCondition(ECR ecr, Condition condition) {
 		log.info("CONDITION --- Trying condition: " + condition.getId());
-		if (condition.getAbatement() != null) {
-			Date abatementDate = HAPIFHIRUtil.getDate(condition.getAbatement());
-			if (abatementDate != null & abatementDate.compareTo(new Date()) <= 0) {
-				log.info("CONDITION --- Found abatement date of: " + abatementDate);
-				log.info("CONDITION --- Condition is not current, ignoring condition.");
-				return;
-			}
-		}
 	
-		Date onsetDate = HAPIFHIRUtil.getDate(condition.getOnset());
-		if (onsetDate == null) {
-			onsetDate = condition.getDateRecorded();
+		Date onsetDate = null;
+		if (condition.getOnset() != null) {
+			Type onsetUntyped = condition.getOnset();
+			if(onsetUntyped instanceof Age) {
+				onsetDate = HAPIFHIRUtil.getDate((Age) onsetUntyped);
+			}
+			if(onsetUntyped instanceof DateTimeType) {
+				onsetDate = HAPIFHIRUtil.getDate((DateTimeType) onsetUntyped);
+			}
+			if(onsetUntyped instanceof Period) {
+				onsetDate = HAPIFHIRUtil.getDate((Period) onsetUntyped);
+			}
 		}
 		Date ecrDate = null;
 		try {
@@ -653,14 +712,15 @@ public class CQLFHIR2ECRService {
 			e.printStackTrace();
 		}
 	
-		CodeableConceptDt code = condition.getCode();
+		CodeableConcept code = condition.getCode();
 		log.info("CONDITION --- Trying code with this many codings: " + code.getCoding().size());
-		for (CodingDt coding : code.getCoding()) {
+		for (Coding coding : code.getCoding()) {
 			log.info("CONDITION --- Trying coding: " + coding.getDisplay());
-			CodeableConcept concept = FHIRCoding2ECRConcept(coding);
+			gatech.edu.STIECR.JSON.CodeableConcept concept = FHIRCoding2ECRConcept(coding);
 			log.info("CONDITION --- Translated to ECRconcept:" + concept.toString());
-			if (ControllerUtils.isSTIDiagnosisCode(concept) &&
-					diagnosisContainsCodeableConcept(ecr.getPatient().getDiagnosis(),concept)) {
+			/* We can no longer know if a diagnosis is caught solely by logic anymore,
+			 * cql key of 42.Condition.Diagnosis is what we need to use instead.
+			if (diagnosisContainsCodeableConcept(ecr.getPatient().getDiagnosis(),concept)) {
 				log.info("CONDITION ---DIAGNOSIS MATCH!" + concept.toString());
 				Diagnosis updatedDiagnosis = new Diagnosis();
 				updatedDiagnosis.setCode(concept.getcode());
@@ -678,6 +738,7 @@ public class CQLFHIR2ECRService {
 				ecr.getPatient().getDiagnosis().add(updatedDiagnosis);
 				return;
 			}
+			*/
 		}
 		handleConditionConceptCode(ecr, code);
 		// TODO: distinguish between symptom list and diagnosis list here
@@ -686,60 +747,69 @@ public class CQLFHIR2ECRService {
 
 	void handleEncounter(ECR ecr, Encounter encounter) {
 		log.info("ENCOUNTER --- Trying encounter: " + encounter.getId());
-		for (CodeableConceptDt reason : encounter.getReason()) {
-			for (CodingDt coding : reason.getCoding()) {
-				CodeableConcept concept = FHIRCoding2ECRConcept(coding);
-				if (!ecr.getPatient().getsymptoms().contains(concept)) {
-					ecr.getPatient()
-							.setvisitDateTime(DateUtil.dateTimeToStdString(encounter.getPeriod().getStart()));
+		if(encounter.hasReason()) {
+			for (CodeableConcept reason : encounter.getReason()) {
+				if(!reason.getCoding().isEmpty()) {
+					gatech.edu.STIECR.JSON.CodeableConcept concept = FHIRCoding2ECRConcept(reason.getCodingFirstRep());
+					if (!ecr.getPatient().getsymptoms().contains(concept)) {
+						ecr.getPatient()
+								.setvisitDateTime(DateUtil.dateTimeToStdString(encounter.getPeriod().getStart()));
+					}
 				}
-				// TODO: Figure out the right strategy for mapping an Onset
-				// TODO: distinguish between symptom list and diagnosis list here
-				// TODO: Map Pregnant from encounters
+			}
+		}
+		if(encounter.hasDiagnosis()) {
+			for(DiagnosisComponent diagnosisComponent:encounter.getDiagnosis()) {
+				if(diagnosisComponent.getCondition() != null && !diagnosisComponent.isEmpty()) {
+					Condition diagnosis = (Condition) findResourceFromReferenceInGlobalBundle(diagnosisComponent.getCondition());
+					if(diagnosis != null && diagnosis.hasCode() && !diagnosis.getCode().isEmpty()) {
+						log.debug("ENCOUNTER --- Found matching diagnosis: " + diagnosis);
+					}
+				}
 			}
 		}
 	}
 
 	void handleObservation(ECR ecr, Observation observation) {
 		log.info("OBSERVATION --- Trying observation: " + observation.getId());
-		CodeableConceptDt code = observation.getCode();
-		for (CodingDt coding : code.getCoding()) {
+		CodeableConcept code = observation.getCode();
+		for (Coding coding : code.getCoding()) {
 			if (coding.getCode().equalsIgnoreCase("laboratory")) { // HIT! Found a lab result
 				LabOrderCode labOrder = new LabOrderCode();
 				labOrder.setcode(coding.getCode());
 				labOrder.setdisplay(coding.getDisplay());
 				labOrder.setsystem(coding.getSystem());
 				LabResult labResult = new LabResult();
-				IDatatype untypedValue = observation.getValue();
-				if (untypedValue instanceof QuantityDt) {
-					labResult.setValue(((QuantityDt) untypedValue).getValue().toString());
+				Type untypedValue = observation.getValue();
+				if (untypedValue instanceof Quantity) {
+					labResult.setValue(((Quantity) untypedValue).getValue().toString());
 				} else
-				if (untypedValue instanceof CodeableConcept) {
-					labResult.setValue(((CodeableConcept) untypedValue).getdisplay());
+				if (untypedValue instanceof CodeableConcept && !((CodeableConcept) untypedValue).getCoding().isEmpty()) {
+					labResult.setValue(((CodeableConcept) untypedValue).getCodingFirstRep().getDisplay());
 				} else
-				if (untypedValue instanceof StringDt) {
-					labResult.setValue(((StringDt) untypedValue).toString());
+				if (untypedValue instanceof StringType) {
+					labResult.setValue(((StringType) untypedValue).toString());
 				} else
-				if (untypedValue instanceof RangeDt) {
-					RangeDt range = (RangeDt) untypedValue;
+				if (untypedValue instanceof Range) {
+					Range range = (Range) untypedValue;
 					labResult.setValue("High:" + range.getHigh() + ";low:" + range.getLow());
 				} else
-				if (untypedValue instanceof RatioDt) {
-					RatioDt ratio = (RatioDt) untypedValue;
+				if (untypedValue instanceof Ratio) {
+					Ratio ratio = (Ratio) untypedValue;
 					labResult.setValue(
 							ratio.getNumerator().toString() + "/" + ratio.getDenominator().toString());
 				} else
-				if (untypedValue instanceof SampledDataDt) {
-					labResult.setValue(((SampledDataDt) untypedValue).getData());
+				if (untypedValue instanceof SampledData) {
+					labResult.setValue(((SampledData) untypedValue).getData());
 				} else
-				if (untypedValue instanceof TimeDt) {
-					labResult.setValue(((TimeDt) untypedValue).getValue());
+				if (untypedValue instanceof TimeType) {
+					labResult.setValue(((TimeType) untypedValue).getValue());
 				} else
-				if (untypedValue instanceof DateTimeDt) {
-					labResult.setValue(((DateTimeDt) untypedValue).getValueAsString());
+				if (untypedValue instanceof DateTimeType) {
+					labResult.setValue(((DateTimeType) untypedValue).getValueAsString());
 				} else
-				if (untypedValue instanceof PeriodDt) {
-					PeriodDt period = (PeriodDt) untypedValue;
+				if (untypedValue instanceof Period) {
+					Period period = (Period) untypedValue;
 					labResult.setValue(
 							"Start:" + period.getStart().toString() + ";End" + period.getEnd().toString());
 				}
@@ -750,15 +820,13 @@ public class CQLFHIR2ECRService {
 
 	void handleProcedure(ECR ecr,Procedure procedure) {
 		log.info("PROCEDURE --- Trying procedure: " + procedure.getId());
-		if (procedure.getReason() != null && !procedure.getReason().isEmpty()) {
-			if (procedure.getReason() instanceof CodeableConceptDt) {
-				handleConditionConceptCode(ecr, (CodeableConceptDt) procedure.getReason());
-			}
+		if (procedure.getReasonCode() != null) {
+			handleConditionConceptCode(ecr,procedure.getReasonCodeFirstRep());
 		}
 	}
 
 	void updateParentGuardian(ParentGuardian pg, RelatedPerson rp) {
-		for (ContactPointDt contact : rp.getTelecom()) {
+		for (ContactPoint contact : rp.getTelecom()) {
 			if (contact.getSystem().equals("Phone") && pg.getphone().isEmpty()) {
 				pg.setphone(contact.getValue());
 			} else
@@ -768,8 +836,8 @@ public class CQLFHIR2ECRService {
 		}
 	}
 
-	public static CodeableConcept FHIRCoding2ECRConcept(CodingDt fhirCoding) {
-		CodeableConcept ecrConcept = new CodeableConcept();
+	public static gatech.edu.STIECR.JSON.CodeableConcept FHIRCoding2ECRConcept(Coding fhirCoding) {
+		gatech.edu.STIECR.JSON.CodeableConcept ecrConcept = new gatech.edu.STIECR.JSON.CodeableConcept();
 		ecrConcept.setcode(fhirCoding.getCode());
 		ecrConcept.setsystem(fhirCoding.getSystem());
 		if (fhirCoding.getSystem().equals("http://snomed.info/sct")) {
@@ -790,16 +858,19 @@ public class CQLFHIR2ECRService {
 		String key = result.get("name").asText();
 		log.debug("STRING --- trying key:"+key);
 		switch(key) {
-		case "19.Patient.ID":
+		/* Find the id from the patient handler section
+		 * We don't need to handle the id solely through cql string results
+		 * case "19.Patient.ID":
 			TypeableID typeId = new TypeableID();
 			typeId.settype("fhir");
 			typeId.setvalue(value);
 			ecr.getPatient().getid().add(typeId);
 			break;
+			*/
 		case "20A.Patient.Name.given":
 			ecr.getPatient().getname().setgiven(value);
 			break;
-		case "20A.Patient.Name.family":
+		case "20B.Patient.Name.family":
 			ecr.getPatient().getname().setfamily(value);
 			break;
 		case "24.Patient.Street_Address":
@@ -815,18 +886,18 @@ public class CQLFHIR2ECRService {
 			ecr.getPatient().setpatientClass(value);
 			break;
 		case "28.Patient.Race":
-			ecr.getPatient().setrace(new CodeableConcept("","",value));
+			ecr.getPatient().setrace(new gatech.edu.STIECR.JSON.CodeableConcept("","",value));
 			break;
 		case "29.Patient.Ethnicity":
-			ecr.getPatient().setethnicity(new CodeableConcept("","",value));
+			ecr.getPatient().setethnicity(new gatech.edu.STIECR.JSON.CodeableConcept("","",value));
 			break;
 		case "30.Patient.Preferred_Language":
-			ecr.getPatient().setpreferredLanguage(new CodeableConcept("","",value));
+			ecr.getPatient().setpreferredLanguage(new gatech.edu.STIECR.JSON.CodeableConcept("","",value));
 			break;
 		case "31.Patient.Occupation":
 			ecr.getPatient().setoccupation(value);
 		case "32.Patient.Pregnancy":
-			ecr.getPatient().setpregnant(value.equalsIgnoreCase("false") ? false : true);
+			ecr.getPatient().setpregnant(value.equalsIgnoreCase("true") ? true : false);
 			break;
 		case "33.Patient.Travel_History":
 			ecr.getPatient().gettravelHistory().add(value);
@@ -835,10 +906,62 @@ public class CQLFHIR2ECRService {
 			log.debug("STRING --- Didn't match to any key!");
 			break;
 		}
-		
 	}
 	
-	public static boolean diagnosisContainsCodeableConcept(List<Diagnosis> listDiagnosis,CodeableConcept ecrConcept) {
+	public void addDateTimeResultByResultKey(ECR ecr,JsonNode result) {
+		Date value = null;
+		try {
+			value = HAPIFHIRUtil.getDateFromCQLDateTimeString(result.get("result").asText());
+		} catch (ParseException e) {
+			log.error("Couldn't format datetime:"+result.get("result").asText());
+			return;
+		}
+		String key = result.get("name").asText();
+		log.debug("DATETIME --- keyname:" + key);
+		switch(key) {
+			case "36.Encounter.Admission_DateTime":
+				ecr.getPatient().setadmissionDateTime(value.toString());
+				break;
+			case "37.Encounter.Visit_DateTime":
+				ecr.getPatient().setvisitDateTime(value.toString());
+				break;
+			case "43.Encounter.Date_Of_Diagnosis":
+				ecr.getPatient().setdateOfOnset(value.toString());
+				break;
+			case "45.Patient.Death_Date":
+				ecr.getPatient().setdeathDate(value.toString());
+				break;
+			case "46.Encounter.Date_Discharged":
+				ecr.getPatient().setdateDischarged(value.toString());
+				break;
+		}
+	}
+	
+	public void addDiagnosis(ECR ecr, Condition condition) {
+		Diagnosis diagnosis = new Diagnosis();
+		if(condition.getCode() != null && !condition.getCode().getCoding().isEmpty()) {
+			Coding coding = condition.getCode().getCodingFirstRep();
+			diagnosis.setCode(coding.getCode());
+			diagnosis.setDisplay(coding.getDisplay());
+			diagnosis.setSystem(coding.getSystem());
+		}
+		if(condition.getOnset() != null) {
+			try {
+				diagnosis.setDate(HAPIFHIRUtil.getDate(condition.getOnsetDateTimeType()).toString());
+			} catch (FHIRException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		else if(condition.getAssertedDate() != null) {
+			diagnosis.setDate(condition.getAssertedDate().toString());
+		}
+		if(!ecr.getPatient().getDiagnosis().contains(diagnosis)) {
+			ecr.getPatient().getDiagnosis().add(diagnosis);
+		}
+	}
+	
+	public static boolean diagnosisContainsCodeableConcept(List<Diagnosis> listDiagnosis,gatech.edu.STIECR.JSON.CodeableConcept ecrConcept) {
 		for(Diagnosis singleDiagnosis:listDiagnosis) {
 			if(singleDiagnosis.getCode().equals(ecrConcept.getcode())
 					&& singleDiagnosis.getSystem().equals(ecrConcept.getsystem())) {
@@ -854,5 +977,54 @@ public class CQLFHIR2ECRService {
 
 	public void setFhirFilterService(FHIRFilterService fhirFilterService) {
 		this.fhirFilterService = fhirFilterService;
+	}
+	
+	private Resource findResourceFromReferenceInGlobalBundle(Reference reference) {
+		log.info("FINDREFERENCE --- global bundle count: " + globalBundle.getEntry().size());
+		String referenceString = reference.getReference();
+		log.info("FINDREFERENCE --- referenceId: " + referenceString);
+		for(BundleEntryComponent entry:globalBundle.getEntry()) {
+			Resource resource = entry.getResource();
+			if(resource != null && referenceMatchesResource(resource,reference)) {
+				return resource;
+			}
+		}
+		return null;
+	}
+	
+	private Resource followReference(Bundle bundle, DomainResource resource, ResourceType resourceType, Reference reference){
+		IIdType id = reference.getReferenceElement();
+		if(id.isLocal()){
+			for(Resource containedResource: resource.getContained()) {
+				if(referenceMatchesResource(resource,reference)){
+					return containedResource;
+				}
+			}
+		}
+		else {
+			for(BundleEntryComponent bec:bundle.getEntry()) {
+				Resource bundleResource = bec.getResource();
+				if(bundleResource != null && referenceMatchesResource(bundleResource,reference)) {
+					return bundleResource;
+				}
+			}
+		}
+		return null;
+	}
+	
+	private boolean referenceMatchesResource(Resource resource,Reference reference) {
+		IIdType id = reference.getReferenceElement();
+		log.debug("REFERENCEMATCHESRESOURCE --- Resource:" + resource);
+		log.debug("REFERENCEMATCHESRESOURCE --- Reference:" + reference);
+		log.debug("REFERENCEMATCHESRESOURCE --- Reference.getReferenceElement:" + id);
+		log.debug("REFERENCEMATCHESRESOURCE --- Reference.getReferenceElement.getIdPart:" + id.getIdPart());
+		log.debug("REFERENCEMATCHESRESOURCE --- Resource.getIdElement:" + resource.getIdElement());
+		log.debug("REFERENCEMATCHESRESOURCE --- Resource.getIdElement.getIdPart:" + resource.getIdElement().getIdPart());
+		log.debug("REFERENCEMATCHESRESOURCE --- Reference.getReferenceElement.getResourceType:" + id.getResourceType());
+		log.debug("REFERENCEMATCHESRESOURCE --- Resource.getResourceType():" + resource.getResourceType().toString());
+		if (id == null || resource.getIdElement() == null) {
+			return false;
+		}
+		return resource.getIdElement().getIdPart().equals(id.getIdPart()) && id.getResourceType().equals(resource.getResourceType().toString());
 	}
 }

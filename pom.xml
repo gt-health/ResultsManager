@@ -32,12 +32,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
-		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -66,7 +60,6 @@
 	    <dependency>
 	    	<groupId>gatech.edu</groupId>
 	    	<artifactId>STIECR</artifactId>
-	    	<version>0.0.1-SNAPSHOT</version>
 	    </dependency>
 	</dependencies>
 
@@ -80,4 +73,13 @@
 	</build>
 
 	<packaging>war</packaging>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>gatech.edu</groupId>
+				<artifactId>STIECR</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 </project>

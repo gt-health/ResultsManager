@@ -1,10 +1,14 @@
 package edu.gatech.ResultsManager.cql.execution.service;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.util.Date;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpEntity;
@@ -34,28 +38,44 @@ public class CQLExecutionService {
 	private String dataServiceUri;
 	private String terminologyUser;
 	private String terminologyPass;
+	private String dataUser;
+	private String dataPass;
+	private String codeMapperServiceUri;
+	private String codeMapperUser;
+	private String codeMapperPass;
+	private ObjectNode codeMapperSystemsMap;
 	private RestTemplate restTemplate;
 	private ObjectMapper objectMapper;
 	private ObjectNode requestJson;
 	
 	public CQLExecutionService() {
-		restTemplate = new RestTemplate();
+		restTemplate = new RestTemplateBuilder().setReadTimeout(Duration.ofMinutes(5)).build();
 		objectMapper = new ObjectMapper();
 		requestJson = JsonNodeFactory.instance.objectNode();
 	}
 
-	public JsonNode evaluateCQL(String cqlBody, String patientId) {
+	public JsonNode evaluateCQL(String cqlBody, String patientId, Date labOrderDate) {
 		log.debug("cql body:"+cqlBody);
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
-				.scheme("https").host(endpoint).port("443").path("/cql/evaluate").build();
+				.scheme("http").host(endpoint).port("8080").path("/cql/evaluate").build();
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		requestJson.put("terminologyServiceUri", terminologyServiceUri);
 		requestJson.put("dataServiceUri", dataServiceUri);
 		requestJson.put("terminologyUser", terminologyUser);
 		requestJson.put("terminologyPass", terminologyPass);
-		requestJson.put("code", cqlBody);
+		requestJson.put("dataUser", dataUser);
+		requestJson.put("dataPass", dataPass);
+		requestJson.put("codeMapperServiceUri", codeMapperServiceUri);
+		requestJson.put("codeMapperUser", codeMapperUser);
+		requestJson.put("codeMapperPass", codeMapperPass);
+		requestJson.put("codeMapperSystemsMap", codeMapperSystemsMap);
 		requestJson.put("patientId", patientId);
+		if(labOrderDate != null) {
+			String labOrderDateString = new SimpleDateFormat("yyyy-MM-dd").format(labOrderDate);
+			requestJson.put("labOrderDate", labOrderDateString);
+		}
+		requestJson.put("code", cqlBody);
 		HttpEntity<String> entity = new HttpEntity<String>(requestJson.toString(), headers);
 		String cQLResultString = restTemplate.postForEntity(uriComponents.toUriString(), entity, String.class).getBody();
 		JsonNode resultsJson = null;
@@ -106,6 +126,58 @@ public class CQLExecutionService {
 	public void setTerminologyPass(String terminologyPass) {
 		this.terminologyPass = terminologyPass;
 	}
-	
+
+	public String getDataUser() {
+		return dataUser;
+	}
+
+	public void setDataUser(String dataUser) {
+		this.dataUser = dataUser;
+	}
+
+	public String getDataPass() {
+		return dataPass;
+	}
+
+	public void setDataPass(String dataPass) {
+		this.dataPass = dataPass;
+	}
+
+	public String getCodeMapperServiceUri() {
+		return codeMapperServiceUri;
+	}
+
+	public void setCodeMapperServiceUri(String codeMapperServiceUri) {
+		this.codeMapperServiceUri = codeMapperServiceUri;
+	}
+
+	public String getCodeMapperUser() {
+		return codeMapperUser;
+	}
+
+	public void setCodeMapperUser(String codeMapperUser) {
+		this.codeMapperUser = codeMapperUser;
+	}
+
+	public String getCodeMapperPass() {
+		return codeMapperPass;
+	}
+
+	public void setCodeMapperPass(String codeMapperPass) {
+		this.codeMapperPass = codeMapperPass;
+	}
+
+	public ObjectNode getCodeMapperSystemsMap() {
+		return codeMapperSystemsMap;
+	}
+
+	public void setCodeMapperSystemsMap(String codeMapperSystemsMap) {
+		try {
+			this.codeMapperSystemsMap = (ObjectNode) objectMapper.readTree(codeMapperSystemsMap);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 }
