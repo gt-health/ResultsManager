@@ -50,6 +50,7 @@ public class FHIRFilterService {
 	public String applyFilter(String rawFhir,boolean escaped) {
 		UriComponents uriComponents = UriComponentsBuilder.newInstance()
 				.scheme("https").host(endpoint).port("443").path("/fhirfilter/apply").build();
+		log.debug("*-* requesting fhir filter @:"+uriComponents.toUriString());
 		if(!escaped) { //Trying to prevent double un-escaping here
 			rawFhir = StringEscapeUtils.unescapeJava(rawFhir);
 		}
@@ -57,11 +58,12 @@ public class FHIRFilterService {
 			//BAD HACK TO GET AROUND VALUE STRING WRAPPING
 			rawFhir = rawFhir.substring(1, rawFhir.length()-1);
 		}
-		log.debug("rawFhir after escaping characters:"+rawFhir);
+		log.debug("fhir resource before filter:"+rawFhir);
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
 		HttpEntity<String> entity = new HttpEntity<String>(rawFhir, headers);
 		String filteredResult = restTemplate.postForEntity(uriComponents.toUriString(), entity, String.class).getBody();
+		log.debug("fhir resource after filter:"+filteredResult);
 		return filteredResult;
 	}
 	
